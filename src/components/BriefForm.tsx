@@ -646,5 +646,3 @@ Notas adicionales: ${formData.additionalNotes || 'Ninguna'}
 };
 
 export default BriefForm;
-
-}
