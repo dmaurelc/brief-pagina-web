@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -9,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Checkbox } from '@/components/ui/checkbox';
 import { ChevronLeft, ChevronRight, Send, Save, Building, Briefcase, DollarSign, Settings } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
 
 interface FormData {
   // Información de la empresa
@@ -157,50 +159,76 @@ const BriefForm = () => {
     setIsSubmitting(true);
     
     try {
+      // Primero guardar en Supabase
+      const { data: briefData, error: supabaseError } = await supabase
+        .from('briefs')
+        .insert({
+          company_name: formData.companyName,
+          contact_name: formData.contactName,
+          email: formData.email,
+          phone: formData.phone,
+          industry: formData.industry,
+          project_type: formData.projectType,
+          project_description: formData.projectDescription,
+          features: formData.features,
+          timeline: formData.timeline,
+          budget: formData.budget,
+          main_goals: formData.mainGoals,
+          target_audience: formData.targetAudience,
+          existing_website: formData.existingWebsite,
+          competitor_websites: formData.competitorWebsites,
+          design_preferences: formData.designPreferences,
+          additional_notes: formData.additionalNotes
+        })
+        .select()
+        .single();
+
+      if (supabaseError) {
+        console.error('Error guardando en Supabase:', supabaseError);
+        throw new Error('Error al guardar los datos');
+      }
+
+      console.log('Datos guardados en Supabase:', briefData);
+
+      // Luego enviar email de notificación con resumen
       const formDataToSend = new FormData();
       formDataToSend.append('access_key', 'afffbf8d-e6b6-4f58-b6df-2615afc756f5');
-      formDataToSend.append('subject', `Nuevo Brief de ${formData.companyName} - BriefWeb`);
+      formDataToSend.append('subject', `Nuevo Brief Recibido - ${formData.companyName}`);
       
-      // Crear el mensaje formateado
-      const message = `
-BRIEF PARA SITIO WEB - ${formData.companyName}
+      // Crear mensaje simplificado solo con datos de contacto
+      const summaryMessage = `
+NUEVO BRIEF RECIBIDO - BriefWeb
 
 === INFORMACIÓN DE LA EMPRESA ===
 Empresa: ${formData.companyName}
 Contacto: ${formData.contactName}
 Email: ${formData.email}
-Teléfono: ${formData.phone}
+Teléfono: ${formData.phone || 'No proporcionado'}
 Industria: ${formData.industry}
-
-=== DETALLES DEL PROYECTO ===
-Tipo de proyecto: ${formData.projectType}
-Descripción: ${formData.projectDescription}
-Funcionalidades requeridas: ${formData.features.join(', ')}
-Timeline: ${formData.timeline}
 
 === PRESUPUESTO Y OBJETIVOS ===
 Presupuesto disponible: ${formData.budget}
-Objetivos principales: ${formData.mainGoals}
-Público objetivo: ${formData.targetAudience}
 
 === INFORMACIÓN TÉCNICA ===
-Sitio web actual: ${formData.existingWebsite || 'No tiene'}
-Sitios de competencia: ${formData.competitorWebsites || 'No especificado'}
-Preferencias de diseño: ${formData.designPreferences || 'No especificado'}
-Notas adicionales: ${formData.additionalNotes || 'Ninguna'}
+Sitio web actual: ${formData.existingWebsite || 'No tiene sitio web actual'}
+
+---
+NOTA: Los detalles completos del proyecto han sido guardados en la base de datos.
+ID del Brief: ${briefData.id}
+Fecha: ${new Date().toLocaleString('es-CL')}
       `;
 
-      formDataToSend.append('message', message);
+      formDataToSend.append('message', summaryMessage);
 
-      const response = await fetch('https://api.web3forms.com/submit', {
+      const emailResponse = await fetch('https://api.web3forms.com/submit', {
         method: 'POST',
         body: formDataToSend
       });
 
-      if (response.ok) {
+      if (emailResponse.ok) {
         toast({
-          title: "¡Brief enviado exitosamente!",
-          description: "Recibirás una respuesta en las próximas 24 horas.",
+          title: "¡Brief enviado y guardado exitosamente!",
+          description: "Los datos han sido guardados y recibirás una respuesta en las próximas 24 horas.",
         });
         
         // Limpiar localStorage después del envío exitoso
@@ -208,13 +236,22 @@ Notas adicionales: ${formData.additionalNotes || 'Ninguna'}
         setFormData(initialFormData);
         setCurrentStep(1);
       } else {
-        throw new Error('Error en el envío');
+        console.error('Error enviando email:', emailResponse);
+        // Aunque el email falle, los datos ya están guardados en Supabase
+        toast({
+          title: "Datos guardados correctamente",
+          description: "Los datos han sido guardados. Hubo un problema con la notificación por email pero te contactaremos pronto.",
+        });
+        
+        localStorage.removeItem('briefweb-form-data');
+        setFormData(initialFormData);
+        setCurrentStep(1);
       }
     } catch (error) {
-      console.error('Error al enviar formulario:', error);
+      console.error('Error en el proceso de envío:', error);
       toast({
-        title: "Error al enviar",
-        description: "Hubo un problema. Por favor, inténtalo de nuevo.",
+        title: "Error al procesar",
+        description: "Hubo un problema al procesar tu solicitud. Por favor, inténtalo de nuevo.",
         variant: "destructive"
       });
     } finally {
@@ -625,7 +662,7 @@ Notas adicionales: ${formData.additionalNotes || 'Ninguna'}
               size="lg"
             >
               {isSubmitting ? (
-                "Enviando..."
+                "Procesando..."
               ) : (
                 <>
                   <Send className="w-4 h-4 mr-2" />

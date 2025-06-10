@@ -9,7 +9,72 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      [_ in never]: never
+      briefs: {
+        Row: {
+          additional_notes: string | null
+          budget: string
+          company_name: string
+          competitor_websites: string | null
+          contact_name: string
+          created_at: string
+          design_preferences: string | null
+          email: string
+          existing_website: string | null
+          features: string[] | null
+          id: string
+          industry: string
+          main_goals: string
+          phone: string | null
+          project_description: string
+          project_type: string
+          target_audience: string
+          timeline: string
+          updated_at: string
+        }
+        Insert: {
+          additional_notes?: string | null
+          budget: string
+          company_name: string
+          competitor_websites?: string | null
+          contact_name: string
+          created_at?: string
+          design_preferences?: string | null
+          email: string
+          existing_website?: string | null
+          features?: string[] | null
+          id?: string
+          industry: string
+          main_goals: string
+          phone?: string | null
+          project_description: string
+          project_type: string
+          target_audience: string
+          timeline: string
+          updated_at?: string
+        }
+        Update: {
+          additional_notes?: string | null
+          budget?: string
+          company_name?: string
+          competitor_websites?: string | null
+          contact_name?: string
+          created_at?: string
+          design_preferences?: string | null
+          email?: string
+          existing_website?: string | null
+          features?: string[] | null
+          id?: string
+          industry?: string
+          main_goals?: string
+          phone?: string | null
+          project_description?: string
+          project_type?: string
+          target_audience?: string
+          timeline?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
