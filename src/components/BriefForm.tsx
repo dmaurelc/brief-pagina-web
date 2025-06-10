@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -94,6 +93,7 @@ const BriefForm = () => {
   const [currentStep, setCurrentStep] = useState(1);
   const [formData, setFormData] = useState<FormData>(initialFormData);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isSubmitted, setIsSubmitted] = useState(false);
 
   const totalSteps = 5;
 
@@ -197,7 +197,7 @@ const BriefForm = () => {
       
       // Crear mensaje simplificado solo con datos de contacto
       const summaryMessage = `
-NUEVO BRIEF RECIBIDO - BriefWeb
+NUEVO BRIEF RECIBIDO - Brief Página Web
 
 === INFORMACIÓN DE LA EMPRESA ===
 Empresa: ${formData.companyName}
@@ -228,13 +228,11 @@ Fecha: ${new Date().toLocaleString('es-CL')}
       if (emailResponse.ok) {
         toast({
           title: "¡Brief enviado y guardado exitosamente!",
-          description: "Los datos han sido guardados y recibirás una respuesta en las próximas 24 horas.",
+          description: "Los datos han sido guardados y recibirás tu presupuesto personalizado en las próximas 24 horas.",
         });
         
-        // Limpiar localStorage después del envío exitoso
-        localStorage.removeItem('briefweb-form-data');
-        setFormData(initialFormData);
-        setCurrentStep(1);
+        // Cambiar a estado de enviado en lugar de limpiar inmediatamente
+        setIsSubmitted(true);
       } else {
         console.error('Error enviando email:', emailResponse);
         // Aunque el email falle, los datos ya están guardados en Supabase
@@ -243,9 +241,7 @@ Fecha: ${new Date().toLocaleString('es-CL')}
           description: "Los datos han sido guardados. Hubo un problema con la notificación por email pero te contactaremos pronto.",
         });
         
-        localStorage.removeItem('briefweb-form-data');
-        setFormData(initialFormData);
-        setCurrentStep(1);
+        setIsSubmitted(true);
       }
     } catch (error) {
       console.error('Error en el proceso de envío:', error);
@@ -258,6 +254,75 @@ Fecha: ${new Date().toLocaleString('es-CL')}
       setIsSubmitting(false);
     }
   };
+
+  const startNewBrief = () => {
+    localStorage.removeItem('briefweb-form-data');
+    setFormData(initialFormData);
+    setCurrentStep(1);
+    setIsSubmitted(false);
+    toast({
+      title: "Nuevo formulario iniciado",
+      description: "Puedes comenzar un nuevo brief desde cero.",
+    });
+  };
+
+  const reviewBrief = () => {
+    setIsSubmitted(false);
+    setCurrentStep(5); // Volver al resumen
+    toast({
+      title: "Revisando brief",
+      description: "Puedes revisar y modificar tu información si es necesario.",
+    });
+  };
+
+  // Si ya fue enviado, mostrar opciones
+  if (isSubmitted) {
+    return (
+      <Card className="w-full max-w-4xl mx-auto">
+        <CardContent className="text-center py-12">
+          <div className="mb-8">
+            <div className="bg-green-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
+              <svg className="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+              </svg>
+            </div>
+            <h3 className="text-2xl font-bold text-gray-900 mb-4">
+              ¡Brief enviado exitosamente!
+            </h3>
+            <p className="text-gray-600 mb-8">
+              Tu información ha sido guardada y analizada. Recibirás tu presupuesto personalizado en las próximas 24 horas.
+            </p>
+          </div>
+          
+          <div className="flex flex-col sm:flex-row gap-4 justify-center">
+            <Button
+              onClick={reviewBrief}
+              variant="outline"
+              size="lg"
+              className="flex items-center"
+            >
+              <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+              </svg>
+              Revisar información enviada
+            </Button>
+            
+            <Button
+              onClick={startNewBrief}
+              size="lg"
+              className="flex items-center"
+            >
+              <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+              </svg>
+              Crear nuevo brief
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
 
   const renderStep = () => {
     switch (currentStep) {

@@ -11,12 +11,16 @@ const Index = () => {
           <div className="flex justify-between items-center py-6">
             <div className="flex items-center space-x-3">
               <div className="bg-blue-600 p-2 rounded-lg">
-                <Globe className="w-6 h-6 text-white" />
+                <img 
+                  src="https://www.dmaurel.cl/wp-content/uploads/2024/10/logo-dmaurel-dark.svg" 
+                  alt="DMaurel Logo" 
+                  className="w-6 h-6 text-white"
+                />
               </div>
-              <h1 className="text-2xl font-bold text-gray-900">BriefWeb</h1>
+              <h1 className="text-2xl font-bold text-gray-900">Brief Página Web</h1>
             </div>
             <div className="text-sm text-gray-600">
-              Solicita tu presupuesto web
+              Formulario para generar presupuesto
             </div>
           </div>
         </div>
@@ -26,10 +30,10 @@ const Index = () => {
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <div className="text-center mb-12">
           <h2 className="text-4xl font-bold text-gray-900 mb-4">
-            Obtén tu presupuesto web personalizado
+            Completa el brief para obtener tu presupuesto personalizado
           </h2>
           <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-            Completa nuestro formulario detallado y recibe una propuesta adaptada a las necesidades específicas de tu proyecto web. Tus datos se guardan automáticamente para que puedas continuar en cualquier momento.
+            Completa este formulario detallado con la información de tu proyecto web. Una vez enviado, analizaré tus requerimientos y te enviaré una propuesta de presupuesto personalizada. Tus datos se guardan automáticamente para que puedas continuar en cualquier momento.
           </p>
         </div>
 
@@ -44,9 +48,9 @@ const Index = () => {
             <div className="bg-blue-100 w-12 h-12 rounded-lg flex items-center justify-center mx-auto mb-4">
               <Globe className="w-6 h-6 text-blue-600" />
             </div>
-            <h3 className="text-lg font-semibold mb-2">Propuesta Personalizada</h3>
+            <h3 className="text-lg font-semibold mb-2">Análisis Personalizado</h3>
             <p className="text-gray-600">
-              Recibe un presupuesto detallado basado en tus necesidades específicas
+              Tu información será analizada para generar un presupuesto específico para tu proyecto
             </p>
           </div>
           
@@ -70,7 +74,7 @@ const Index = () => {
             </div>
             <h3 className="text-lg font-semibold mb-2">Respuesta Rápida</h3>
             <p className="text-gray-600">
-              Recibirás nuestra propuesta en menos de 24 horas
+              Recibirás tu presupuesto personalizado en menos de 24 horas
             </p>
           </div>
         </div>
@@ -80,7 +84,7 @@ const Index = () => {
       <footer className="bg-white border-t border-gray-200 mt-20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <div className="text-center text-gray-600">
-            <p>&copy; 2025 Brief Diseño Web. Solicita un presupuesto web a medida.</p>
+            <p>&copy; 2025 Brief Página Web - Generador de presupuestos web personalizados.</p>
           </div>
         </div>
       </footer>
