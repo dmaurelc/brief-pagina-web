@@ -6,7 +6,9 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
-import { ChevronLeft, ChevronRight, Send, Save } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Checkbox } from '@/components/ui/checkbox';
+import { ChevronLeft, ChevronRight, Send, Save, Building, Briefcase, DollarSign, Settings } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 
 interface FormData {
@@ -54,6 +56,39 @@ const initialFormData: FormData = {
   additionalNotes: ''
 };
 
+const industryOptions = [
+  'Tecnología',
+  'Salud',
+  'Educación',
+  'Retail/E-commerce',
+  'Servicios Financieros',
+  'Inmobiliaria',
+  'Turismo y Hospitalidad',
+  'Alimentación y Bebidas',
+  'Manufactura',
+  'Consultoría',
+  'Marketing y Publicidad',
+  'Deportes y Fitness',
+  'Arte y Entretenimiento',
+  'Automotriz',
+  'Construcción',
+  'Legal',
+  'Otros'
+];
+
+const featuresOptions = [
+  'Formulario de contacto',
+  'Chat en vivo',
+  'Sistema de reservas',
+  'Galería de imágenes',
+  'Blog/Noticias',
+  'Múltiples idiomas',
+  'Newsletter',
+  'Búsqueda avanzada',
+  'Panel de administración',
+  'Chatbot con IA'
+];
+
 const BriefForm = () => {
   const [currentStep, setCurrentStep] = useState(1);
   const [formData, setFormData] = useState<FormData>(initialFormData);
@@ -90,11 +125,11 @@ const BriefForm = () => {
     }));
   };
 
-  const handleFeatureToggle = (feature: string) => {
+  const handleFeatureToggle = (feature: string, checked: boolean) => {
     const currentFeatures = formData.features;
-    const updatedFeatures = currentFeatures.includes(feature)
-      ? currentFeatures.filter(f => f !== feature)
-      : [...currentFeatures, feature];
+    const updatedFeatures = checked
+      ? [...currentFeatures, feature]
+      : currentFeatures.filter(f => f !== feature);
     updateFormData('features', updatedFeatures);
   };
 
@@ -230,17 +265,23 @@ Notas adicionales: ${formData.additionalNotes || 'Ninguna'}
                 type="tel"
                 value={formData.phone}
                 onChange={(e) => updateFormData('phone', e.target.value)}
-                placeholder="+1 234 567 8900"
+                placeholder="+56 9 1234 5678"
               />
             </div>
             <div>
-              <Label htmlFor="industry">Industria/Sector</Label>
-              <Input
-                id="industry"
-                value={formData.industry}
-                onChange={(e) => updateFormData('industry', e.target.value)}
-                placeholder="Ej: Tecnología, Salud, Educación"
-              />
+              <Label htmlFor="industry">Industria/Sector *</Label>
+              <Select value={formData.industry} onValueChange={(value) => updateFormData('industry', value)}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecciona tu industria" />
+                </SelectTrigger>
+                <SelectContent>
+                  {industryOptions.map((industry) => (
+                    <SelectItem key={industry} value={industry}>
+                      {industry}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
           </div>
         );
@@ -250,21 +291,18 @@ Notas adicionales: ${formData.additionalNotes || 'Ninguna'}
           <div className="space-y-4">
             <div>
               <Label htmlFor="projectType">Tipo de proyecto *</Label>
-              <select
-                id="projectType"
-                className="w-full p-2 border border-input rounded-md bg-background"
-                value={formData.projectType}
-                onChange={(e) => updateFormData('projectType', e.target.value)}
-                required
-              >
-                <option value="">Selecciona una opción</option>
-                <option value="nuevo">Sitio web nuevo</option>
-                <option value="rediseno">Rediseño de sitio existente</option>
-                <option value="ecommerce">Tienda online/E-commerce</option>
-                <option value="landing">Landing page</option>
-                <option value="blog">Blog/Portal de contenidos</option>
-                <option value="app">Aplicación web</option>
-              </select>
+              <Select value={formData.projectType} onValueChange={(value) => updateFormData('projectType', value)}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecciona una opción" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="nuevo">Sitio web nuevo</SelectItem>
+                  <SelectItem value="rediseno">Rediseño de sitio existente</SelectItem>
+                  <SelectItem value="ecommerce">Tienda online/E-commerce</SelectItem>
+                  <SelectItem value="landing">Landing page</SelectItem>
+                  <SelectItem value="blog">Blog/Portal de contenidos</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
             <div>
               <Label htmlFor="projectDescription">Descripción del proyecto *</Label>
@@ -279,48 +317,36 @@ Notas adicionales: ${formData.additionalNotes || 'Ninguna'}
             </div>
             <div>
               <Label>Funcionalidades requeridas</Label>
-              <div className="grid grid-cols-2 gap-2 mt-2">
-                {[
-                  'Formulario de contacto',
-                  'Chat en vivo',
-                  'Sistema de reservas',
-                  'Galería de imágenes',
-                  'Blog/Noticias',
-                  'Múltiples idiomas',
-                  'Integración redes sociales',
-                  'Newsletter',
-                  'Búsqueda avanzada',
-                  'Panel de administración'
-                ].map((feature) => (
-                  <label key={feature} className="flex items-center space-x-2 cursor-pointer">
-                    <input
-                      type="checkbox"
+              <div className="grid grid-cols-1 gap-3 mt-2">
+                {featuresOptions.map((feature) => (
+                  <div key={feature} className="flex items-center space-x-2">
+                    <Checkbox
+                      id={feature}
                       checked={formData.features.includes(feature)}
-                      onChange={() => handleFeatureToggle(feature)}
-                      className="rounded border-input"
+                      onCheckedChange={(checked) => handleFeatureToggle(feature, checked as boolean)}
                     />
-                    <span className="text-sm">{feature}</span>
-                  </label>
+                    <Label htmlFor={feature} className="text-sm cursor-pointer">
+                      {feature}
+                    </Label>
+                  </div>
                 ))}
               </div>
             </div>
             <div>
               <Label htmlFor="timeline">Timeline esperado *</Label>
-              <select
-                id="timeline"
-                className="w-full p-2 border border-input rounded-md bg-background"
-                value={formData.timeline}
-                onChange={(e) => updateFormData('timeline', e.target.value)}
-                required
-              >
-                <option value="">Selecciona un plazo</option>
-                <option value="1-2-semanas">1-2 semanas</option>
-                <option value="1-mes">1 mes</option>
-                <option value="2-3-meses">2-3 meses</option>
-                <option value="3-6-meses">3-6 meses</option>
-                <option value="mas-6-meses">Más de 6 meses</option>
-                <option value="flexible">Flexible</option>
-              </select>
+              <Select value={formData.timeline} onValueChange={(value) => updateFormData('timeline', value)}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecciona un plazo" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="1-2-semanas">1-2 semanas</SelectItem>
+                  <SelectItem value="1-mes">1 mes</SelectItem>
+                  <SelectItem value="2-3-meses">2-3 meses</SelectItem>
+                  <SelectItem value="3-6-meses">3-6 meses</SelectItem>
+                  <SelectItem value="mas-6-meses">Más de 6 meses</SelectItem>
+                  <SelectItem value="flexible">Flexible</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
           </div>
         );
@@ -330,21 +356,19 @@ Notas adicionales: ${formData.additionalNotes || 'Ninguna'}
           <div className="space-y-4">
             <div>
               <Label htmlFor="budget">Presupuesto disponible *</Label>
-              <select
-                id="budget"
-                className="w-full p-2 border border-input rounded-md bg-background"
-                value={formData.budget}
-                onChange={(e) => updateFormData('budget', e.target.value)}
-                required
-              >
-                <option value="">Selecciona un rango</option>
-                <option value="menos-1000">Menos de $1,000</option>
-                <option value="1000-5000">$1,000 - $5,000</option>
-                <option value="5000-10000">$5,000 - $10,000</option>
-                <option value="10000-25000">$10,000 - $25,000</option>
-                <option value="mas-25000">Más de $25,000</option>
-                <option value="por-definir">Por definir</option>
-              </select>
+              <Select value={formData.budget} onValueChange={(value) => updateFormData('budget', value)}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecciona un rango" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="menos-300000">Menos de $300.000 CLP</SelectItem>
+                  <SelectItem value="300000-500000">Entre $300.000 - $500.000 CLP</SelectItem>
+                  <SelectItem value="500000-800000">Entre $500.000 - $800.000 CLP</SelectItem>
+                  <SelectItem value="800000-1000000">Entre $800.000 - $1.000.000 CLP</SelectItem>
+                  <SelectItem value="mas-1000000">Más de $1.000.000 CLP</SelectItem>
+                  <SelectItem value="por-definir">Por definir</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
             <div>
               <Label htmlFor="mainGoals">Objetivos principales del sitio web *</Label>
@@ -421,34 +445,130 @@ Notas adicionales: ${formData.additionalNotes || 'Ninguna'}
         return (
           <div className="space-y-6">
             <div className="text-center">
-              <h3 className="text-xl font-semibold mb-4">Resumen de tu Brief</h3>
-              <p className="text-muted-foreground mb-6">
-                Revisa la información antes de enviar. Recibirás una respuesta en las próximas 24 horas.
+              <h3 className="text-2xl font-bold mb-2">Resumen de tu Brief</h3>
+              <p className="text-muted-foreground mb-8">
+                Revisa toda la información antes de enviar. Recibirás una respuesta en las próximas 24 horas.
               </p>
             </div>
             
-            <div className="space-y-4 text-sm">
-              <div className="border rounded-lg p-4">
-                <h4 className="font-semibold mb-2">Información de la empresa</h4>
-                <p><strong>Empresa:</strong> {formData.companyName}</p>
-                <p><strong>Contacto:</strong> {formData.contactName}</p>
-                <p><strong>Email:</strong> {formData.email}</p>
-                <p><strong>Teléfono:</strong> {formData.phone || 'No especificado'}</p>
-                <p><strong>Industria:</strong> {formData.industry || 'No especificado'}</p>
+            <div className="space-y-6">
+              {/* Información de la empresa */}
+              <div className="border rounded-lg p-6 bg-card">
+                <div className="flex items-center mb-4">
+                  <Building className="w-5 h-5 text-primary mr-2" />
+                  <h4 className="text-lg font-semibold">Información de la empresa</h4>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <span className="text-sm font-medium text-muted-foreground">Empresa:</span>
+                    <p className="text-sm mt-1">{formData.companyName || 'No especificado'}</p>
+                  </div>
+                  <div>
+                    <span className="text-sm font-medium text-muted-foreground">Contacto:</span>
+                    <p className="text-sm mt-1">{formData.contactName || 'No especificado'}</p>
+                  </div>
+                  <div>
+                    <span className="text-sm font-medium text-muted-foreground">Email:</span>
+                    <p className="text-sm mt-1">{formData.email || 'No especificado'}</p>
+                  </div>
+                  <div>
+                    <span className="text-sm font-medium text-muted-foreground">Teléfono:</span>
+                    <p className="text-sm mt-1">{formData.phone || 'No especificado'}</p>
+                  </div>
+                  <div className="md:col-span-2">
+                    <span className="text-sm font-medium text-muted-foreground">Industria:</span>
+                    <p className="text-sm mt-1">{formData.industry || 'No especificado'}</p>
+                  </div>
+                </div>
               </div>
 
-              <div className="border rounded-lg p-4">
-                <h4 className="font-semibold mb-2">Detalles del proyecto</h4>
-                <p><strong>Tipo:</strong> {formData.projectType}</p>
-                <p><strong>Timeline:</strong> {formData.timeline}</p>
-                <p><strong>Presupuesto:</strong> {formData.budget}</p>
-                <p><strong>Funcionalidades:</strong> {formData.features.join(', ') || 'Ninguna seleccionada'}</p>
+              {/* Detalles del proyecto */}
+              <div className="border rounded-lg p-6 bg-card">
+                <div className="flex items-center mb-4">
+                  <Briefcase className="w-5 h-5 text-primary mr-2" />
+                  <h4 className="text-lg font-semibold">Detalles del proyecto</h4>
+                </div>
+                <div className="space-y-4">
+                  <div>
+                    <span className="text-sm font-medium text-muted-foreground">Tipo de proyecto:</span>
+                    <p className="text-sm mt-1">{formData.projectType || 'No especificado'}</p>
+                  </div>
+                  <div>
+                    <span className="text-sm font-medium text-muted-foreground">Descripción:</span>
+                    <p className="text-sm mt-1">{formData.projectDescription || 'No especificado'}</p>
+                  </div>
+                  <div>
+                    <span className="text-sm font-medium text-muted-foreground">Timeline:</span>
+                    <p className="text-sm mt-1">{formData.timeline || 'No especificado'}</p>
+                  </div>
+                  <div>
+                    <span className="text-sm font-medium text-muted-foreground">Funcionalidades requeridas:</span>
+                    <div className="mt-1">
+                      {formData.features.length > 0 ? (
+                        <div className="flex flex-wrap gap-2">
+                          {formData.features.map((feature, index) => (
+                            <span
+                              key={index}
+                              className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-primary/10 text-primary"
+                            >
+                              {feature}
+                            </span>
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="text-sm text-muted-foreground">Ninguna funcionalidad seleccionada</p>
+                      )}
+                    </div>
+                  </div>
+                </div>
               </div>
 
-              <div className="border rounded-lg p-4">
-                <h4 className="font-semibold mb-2">Objetivos y audiencia</h4>
-                <p><strong>Objetivos:</strong> {formData.mainGoals}</p>
-                <p><strong>Público objetivo:</strong> {formData.targetAudience}</p>
+              {/* Presupuesto y objetivos */}
+              <div className="border rounded-lg p-6 bg-card">
+                <div className="flex items-center mb-4">
+                  <DollarSign className="w-5 h-5 text-primary mr-2" />
+                  <h4 className="text-lg font-semibold">Presupuesto y objetivos</h4>
+                </div>
+                <div className="space-y-4">
+                  <div>
+                    <span className="text-sm font-medium text-muted-foreground">Presupuesto disponible:</span>
+                    <p className="text-sm mt-1">{formData.budget || 'No especificado'}</p>
+                  </div>
+                  <div>
+                    <span className="text-sm font-medium text-muted-foreground">Objetivos principales:</span>
+                    <p className="text-sm mt-1">{formData.mainGoals || 'No especificado'}</p>
+                  </div>
+                  <div>
+                    <span className="text-sm font-medium text-muted-foreground">Público objetivo:</span>
+                    <p className="text-sm mt-1">{formData.targetAudience || 'No especificado'}</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Información técnica */}
+              <div className="border rounded-lg p-6 bg-card">
+                <div className="flex items-center mb-4">
+                  <Settings className="w-5 h-5 text-primary mr-2" />
+                  <h4 className="text-lg font-semibold">Información técnica</h4>
+                </div>
+                <div className="space-y-4">
+                  <div>
+                    <span className="text-sm font-medium text-muted-foreground">Sitio web actual:</span>
+                    <p className="text-sm mt-1">{formData.existingWebsite || 'No tiene sitio web actual'}</p>
+                  </div>
+                  <div>
+                    <span className="text-sm font-medium text-muted-foreground">Sitios de competencia/referencia:</span>
+                    <p className="text-sm mt-1">{formData.competitorWebsites || 'No especificado'}</p>
+                  </div>
+                  <div>
+                    <span className="text-sm font-medium text-muted-foreground">Preferencias de diseño:</span>
+                    <p className="text-sm mt-1">{formData.designPreferences || 'No especificado'}</p>
+                  </div>
+                  <div>
+                    <span className="text-sm font-medium text-muted-foreground">Notas adicionales:</span>
+                    <p className="text-sm mt-1">{formData.additionalNotes || 'Ninguna nota adicional'}</p>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -471,10 +591,10 @@ Notas adicionales: ${formData.additionalNotes || 'Ninguna'}
   };
 
   return (
-    <Card className="w-full max-w-2xl mx-auto">
+    <Card className="w-full max-w-4xl mx-auto">
       <CardHeader>
         <div className="flex justify-between items-center">
-          <CardTitle>{getStepTitle()}</CardTitle>
+          <CardTitle className="text-xl">{getStepTitle()}</CardTitle>
           <Button onClick={saveProgress} variant="outline" size="sm">
             <Save className="w-4 h-4 mr-2" />
             Guardar
@@ -502,6 +622,7 @@ Notas adicionales: ${formData.additionalNotes || 'Ninguna'}
               onClick={submitForm}
               disabled={isSubmitting}
               className="ml-auto"
+              size="lg"
             >
               {isSubmitting ? (
                 "Enviando..."
