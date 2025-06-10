@@ -80,7 +80,7 @@ const Index = () => {
       <footer className="bg-white border-t border-gray-200 mt-20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <div className="text-center text-gray-600">
-            <p>&copy; 2024 BriefWeb. Solicita tu presupuesto web de manera profesional.</p>
+            <p>&copy; 2025 Brief Diseño Web. Solicita un presupuesto web a medida.</p>
           </div>
         </div>
       </footer>
