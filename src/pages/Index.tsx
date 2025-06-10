@@ -11,14 +11,13 @@ const Index = () => {
           <div className="flex justify-between items-center py-6">
             <div className="flex items-center space-x-3">
               <img 
-                  src="https://www.dmaurel.cl/wp-content/uploads/2024/10/logo-dmaurel-dark.svg" 
+                  src="/src/assets/logo-dmaurel-white.svg" 
                   alt="DMaurel Logo" 
                   className="w-24 h-auto"
                 />
-              <h1 className="text-2xl font-bold text-foreground">Brief Página Web</h1>
             </div>
             <div className="text-sm text-muted-foreground">
-              Formulario para generar presupuesto
+              Brief Página Web
             </div>
           </div>
         </div>
