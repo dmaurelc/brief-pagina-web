@@ -7,87 +7,87 @@
 
 @layer base {
   :root {
-    --background: 222 84% 5%; /* Dark background like dmaurel.cl */
+    --background: 210 40% 2%; /* accent-950 */
     --foreground: 0 0% 100%; /* White text */
 
-    --card: 222 84% 8%; /* Slightly lighter dark for cards */
+    --card: 210 40% 5%; /* accent-900 */
     --card-foreground: 0 0% 100%;
 
-    --popover: 222 84% 8%;
+    --popover: 210 40% 5%; /* accent-900 */
     --popover-foreground: 0 0% 100%;
 
-    --primary: 45 100% 54%; /* #F9BF14 - Main yellow/gold color */
-    --primary-foreground: 222 84% 5%; /* Dark text on yellow */
+    --primary: 45 93% 54%; /* brand-500 #F9BF14 */
+    --primary-foreground: 210 40% 2%; /* Dark text on yellow */
 
-    --secondary: 222 84% 12%; /* Dark secondary */
+    --secondary: 210 40% 8%; /* accent-800 */
     --secondary-foreground: 0 0% 100%;
 
-    --muted: 222 84% 12%;
+    --muted: 210 40% 8%; /* accent-800 */
     --muted-foreground: 0 0% 70%; /* Light gray for muted text */
 
-    --accent: 222 84% 15%; /* Accent background */
-    --accent-foreground: 45 100% 54%; /* Yellow accent text */
-    --accent-700: 222 84% 10%; /* Darker accent for backgrounds */
-    --accent-900: 222 84% 3%; /* Very dark accent for form backgrounds */
+    --accent: 210 40% 14%; /* accent-700 */
+    --accent-foreground: 45 93% 54%; /* brand-500 for accent text */
+    --accent-700: 210 40% 8%; /* accent-800 for darker backgrounds */
+    --accent-900: 210 40% 5%; /* accent-900 for form backgrounds */
 
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 222 84% 15%; /* Dark border */
-    --input: 222 84% 12%; /* Dark input background */
-    --ring: 45 100% 54%; /* Yellow focus ring */
+    --border: 210 40% 14%; /* accent-700 */
+    --input: 210 40% 8%; /* accent-800 */
+    --ring: 45 93% 54%; /* brand-500 focus ring */
 
     --radius: 0.5rem;
 
-    --sidebar-background: 222 84% 8%;
+    --sidebar-background: 210 40% 5%; /* accent-900 */
     --sidebar-foreground: 0 0% 100%;
-    --sidebar-primary: 45 100% 54%;
-    --sidebar-primary-foreground: 222 84% 5%;
-    --sidebar-accent: 222 84% 12%;
+    --sidebar-primary: 45 93% 54%; /* brand-500 */
+    --sidebar-primary-foreground: 210 40% 2%; /* accent-950 */
+    --sidebar-accent: 210 40% 8%; /* accent-800 */
     --sidebar-accent-foreground: 0 0% 100%;
-    --sidebar-border: 222 84% 15%;
-    --sidebar-ring: 45 100% 54%;
+    --sidebar-border: 210 40% 14%; /* accent-700 */
+    --sidebar-ring: 45 93% 54%; /* brand-500 */
   }
 
   .dark {
-    --background: 222 84% 5%;
+    --background: 210 40% 2%; /* accent-950 */
     --foreground: 0 0% 100%;
 
-    --card: 222 84% 8%;
+    --card: 210 40% 5%; /* accent-900 */
     --card-foreground: 0 0% 100%;
 
-    --popover: 222 84% 8%;
+    --popover: 210 40% 5%; /* accent-900 */
     --popover-foreground: 0 0% 100%;
 
-    --primary: 45 100% 54%;
-    --primary-foreground: 222 84% 5%;
+    --primary: 45 93% 54%; /* brand-500 */
+    --primary-foreground: 210 40% 2%; /* accent-950 */
 
-    --secondary: 222 84% 12%;
+    --secondary: 210 40% 8%; /* accent-800 */
     --secondary-foreground: 0 0% 100%;
 
-    --muted: 222 84% 12%;
+    --muted: 210 40% 8%; /* accent-800 */
     --muted-foreground: 0 0% 70%;
 
-    --accent: 222 84% 15%;
-    --accent-foreground: 45 100% 54%;
-    --accent-700: 222 84% 10%;
-    --accent-900: 222 84% 3%;
+    --accent: 210 40% 14%; /* accent-700 */
+    --accent-foreground: 45 93% 54%; /* brand-500 */
+    --accent-700: 210 40% 8%; /* accent-800 */
+    --accent-900: 210 40% 5%; /* accent-900 */
 
     --destructive: 0 62.8% 30.6%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 222 84% 15%;
-    --input: 222 84% 12%;
-    --ring: 45 100% 54%;
+    --border: 210 40% 14%; /* accent-700 */
+    --input: 210 40% 8%; /* accent-800 */
+    --ring: 45 93% 54%; /* brand-500 */
     
-    --sidebar-background: 222 84% 8%;
+    --sidebar-background: 210 40% 5%; /* accent-900 */
     --sidebar-foreground: 0 0% 100%;
-    --sidebar-primary: 45 100% 54%;
-    --sidebar-primary-foreground: 222 84% 5%;
-    --sidebar-accent: 222 84% 12%;
+    --sidebar-primary: 45 93% 54%; /* brand-500 */
+    --sidebar-primary-foreground: 210 40% 2%; /* accent-950 */
+    --sidebar-accent: 210 40% 8%; /* accent-800 */
     --sidebar-accent-foreground: 0 0% 100%;
-    --sidebar-border: 222 84% 15%;
-    --sidebar-ring: 45 100% 54%;
+    --sidebar-border: 210 40% 14%; /* accent-700 */
+    --sidebar-ring: 45 93% 54%; /* brand-500 */
   }
 }
 
