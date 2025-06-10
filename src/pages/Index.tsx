@@ -10,13 +10,11 @@ const Index = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center py-6">
             <div className="flex items-center space-x-3">
-              <div className="bg-blue-600 p-2 rounded-lg">
-                <img 
+              <img 
                   src="https://www.dmaurel.cl/wp-content/uploads/2024/10/logo-dmaurel-dark.svg" 
                   alt="DMaurel Logo" 
-                  className="w-6 h-6 text-white"
+                  className="w-24 h-auto text-white"
                 />
-              </div>
               <h1 className="text-2xl font-bold text-gray-900">Brief Página Web</h1>
             </div>
             <div className="text-sm text-gray-600">
@@ -30,10 +28,10 @@ const Index = () => {
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <div className="text-center mb-12">
           <h2 className="text-4xl font-bold text-gray-900 mb-4">
-            Completa el brief para obtener tu presupuesto personalizado
+            Solicitud de presupuesto web
           </h2>
           <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-            Completa este formulario detallado con la información de tu proyecto web. Una vez enviado, analizaré tus requerimientos y te enviaré una propuesta de presupuesto personalizada. Tus datos se guardan automáticamente para que puedas continuar en cualquier momento.
+            Completa este formulario para conocer tus tus requerimientos para poder generar una propuesta a medida. Tus datos se guardan automáticamente para que puedas continuar en cualquier momento.
           </p>
         </div>
 
