@@ -11,7 +11,7 @@ const Index = () => {
           <div className="flex justify-between items-center py-6">
             <div className="flex items-center space-x-3">
               <img 
-                  src="/src/assets/logo-dmaurel-white.svg" 
+                  src="/logo-dmaurel-white.svg" 
                   alt="DMaurel Logo" 
                   className="w-24 h-auto"
                 />
