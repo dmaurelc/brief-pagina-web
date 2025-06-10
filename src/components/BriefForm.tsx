@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -113,7 +112,7 @@ const BriefForm = () => {
     }
   }, []);
 
-  // Guardar datos en localStorage cada vez que cambian
+  // Guardar datos en localStorage automáticamente cada vez que cambian
   useEffect(() => {
     localStorage.setItem('briefweb-form-data', JSON.stringify(formData));
   }, [formData]);
@@ -123,6 +122,7 @@ const BriefForm = () => {
       ...prev,
       [field]: value
     }));
+    // Los datos se guardan automáticamente por el useEffect de arriba
   };
 
   const handleFeatureToggle = (feature: string, checked: boolean) => {
@@ -134,10 +134,10 @@ const BriefForm = () => {
   };
 
   const saveProgress = () => {
-    localStorage.setItem('briefweb-form-data', JSON.stringify(formData));
+    // Esta función ahora solo muestra un mensaje ya que el guardado es automático
     toast({
-      title: "Progreso guardado",
-      description: "Tus datos han sido guardados localmente.",
+      title: "Datos guardados",
+      description: "Tus datos se guardan automáticamente mientras completas el formulario.",
     });
   };
 
@@ -597,11 +597,11 @@ Notas adicionales: ${formData.additionalNotes || 'Ninguna'}
           <CardTitle className="text-xl">{getStepTitle()}</CardTitle>
           <Button onClick={saveProgress} variant="outline" size="sm">
             <Save className="w-4 h-4 mr-2" />
-            Guardar
+            Guardado automático
           </Button>
         </div>
         <Progress value={(currentStep / totalSteps) * 100} className="w-full" />
-        <p className="text-sm text-muted-foreground">Paso {currentStep} de {totalSteps}</p>
+        <p className="text-sm text-muted-foreground">Paso {currentStep} de {totalSteps} • Guardado automático activado</p>
       </CardHeader>
       
       <CardContent>
@@ -646,3 +646,5 @@ Notas adicionales: ${formData.additionalNotes || 'Ninguna'}
 };
 
 export default BriefForm;
+
+}
