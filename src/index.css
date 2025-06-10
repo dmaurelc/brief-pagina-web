@@ -27,6 +27,8 @@
 
     --accent: 222 84% 15%; /* Accent background */
     --accent-foreground: 45 100% 54%; /* Yellow accent text */
+    --accent-700: 222 84% 10%; /* Darker accent for backgrounds */
+    --accent-900: 222 84% 3%; /* Very dark accent for form backgrounds */
 
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 0 0% 100%;
@@ -68,6 +70,8 @@
 
     --accent: 222 84% 15%;
     --accent-foreground: 45 100% 54%;
+    --accent-700: 222 84% 10%;
+    --accent-900: 222 84% 3%;
 
     --destructive: 0 62.8% 30.6%;
     --destructive-foreground: 0 0% 100%;
