@@ -39,42 +39,7 @@ const Index = () => {
           <BriefForm />
         </div>
 
-        {/* Features */}
-        <div className="mt-16 grid grid-cols-1 md:grid-cols-3 gap-8">
-          <div className="text-center">
-            <div className="bg-accent w-12 h-12 rounded-lg flex items-center justify-center mx-auto mb-4">
-              <Globe className="w-6 h-6 text-primary" />
-            </div>
-            <h3 className="text-lg font-semibold mb-2 text-foreground">Análisis Personalizado</h3>
-            <p className="text-muted-foreground">
-              Tu información será analizada para generar un presupuesto específico para tu proyecto
-            </p>
-          </div>
-          
-          <div className="text-center">
-            <div className="bg-accent w-12 h-12 rounded-lg flex items-center justify-center mx-auto mb-4">
-              <svg className="w-6 h-6 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-              </svg>
-            </div>
-            <h3 className="text-lg font-semibold mb-2 text-foreground">Progreso Guardado</h3>
-            <p className="text-muted-foreground">
-              Tus datos se guardan automáticamente, continúa cuando quieras
-            </p>
-          </div>
-          
-          <div className="text-center">
-            <div className="bg-accent w-12 h-12 rounded-lg flex items-center justify-center mx-auto mb-4">
-              <svg className="w-6 h-6 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-            </div>
-            <h3 className="text-lg font-semibold mb-2 text-foreground">Respuesta Rápida</h3>
-            <p className="text-muted-foreground">
-              Generaré tu presupuesto personalizado en menos de 24 horas
-            </p>
-          </div>
-        </div>
+        
       </main>
 
       {/* Footer */}
