@@ -697,7 +697,7 @@ Fecha: ${new Date().toLocaleString('es-CL')}
     <div className="w-full max-w-4xl mx-auto space-y-4">
       <Card className="bg-accent-900">
         <CardHeader>
-          <CardTitle className="text-xl font-semibold">{getStepTitle()}</CardTitle>
+          <CardTitle className="text-xl font-medium">{getStepTitle()}</CardTitle>
           <Progress value={(currentStep / totalSteps) * 100} className="w-full" />
           <p className="text-sm text-muted-foreground">Paso {currentStep} de {totalSteps} • Guardado automático activado</p>
         </CardHeader>
