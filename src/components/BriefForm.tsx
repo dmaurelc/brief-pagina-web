@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -693,57 +694,61 @@ Fecha: ${new Date().toLocaleString('es-CL')}
   };
 
   return (
-    <Card className="w-full max-w-4xl mx-auto bg-accent-900">
-      <CardHeader>
-        <div className="flex justify-between items-center">
-          <CardTitle className="text-xl">{getStepTitle()}</CardTitle>
-          <Button onClick={saveProgress} variant="outline" size="sm">
-            <Save className="w-4 h-4 mr-2" />
-            Guardado automático
-          </Button>
-        </div>
-        <Progress value={(currentStep / totalSteps) * 100} className="w-full" />
-        <p className="text-sm text-muted-foreground">Paso {currentStep} de {totalSteps} • Guardado automático activado</p>
-      </CardHeader>
-      
-      <CardContent>
-        {renderStep()}
+    <div className="w-full max-w-4xl mx-auto space-y-4">
+      {/* Auto-save button moved outside */}
+      <div className="flex justify-end">
+        <Button onClick={saveProgress} variant="outline" size="sm">
+          <Save className="w-4 h-4 mr-2" />
+          Guardado automático
+        </Button>
+      </div>
+
+      <Card className="bg-accent-900">
+        <CardHeader>
+          <CardTitle className="text-xl font-semibold">{getStepTitle()}</CardTitle>
+          <Progress value={(currentStep / totalSteps) * 100} className="w-full" />
+          <p className="text-sm text-muted-foreground">Paso {currentStep} de {totalSteps} • Guardado automático activado</p>
+        </CardHeader>
         
-        <div className="flex justify-between mt-8">
-          <Button
-            onClick={prevStep}
-            disabled={currentStep === 1}
-            variant="outline"
-          >
-            <ChevronLeft className="w-4 h-4 mr-2" />
-            Anterior
-          </Button>
+        <CardContent>
+          {renderStep()}
           
-          {currentStep === totalSteps ? (
+          <div className="flex justify-between mt-8">
             <Button
-              onClick={submitForm}
-              disabled={isSubmitting}
-              className="ml-auto"
-              size="lg"
+              onClick={prevStep}
+              disabled={currentStep === 1}
+              variant="outline"
             >
-              {isSubmitting ? (
-                "Procesando..."
-              ) : (
-                <>
-                  <Send className="w-4 h-4 mr-2" />
-                  Enviar Brief
-                </>
-              )}
+              <ChevronLeft className="w-4 h-4 mr-2" />
+              Anterior
             </Button>
-          ) : (
-            <Button onClick={nextStep}>
-              Siguiente
-              <ChevronRight className="w-4 h-4 ml-2" />
-            </Button>
-          )}
-        </div>
-      </CardContent>
-    </Card>
+            
+            {currentStep === totalSteps ? (
+              <Button
+                onClick={submitForm}
+                disabled={isSubmitting}
+                className="ml-auto"
+                size="lg"
+              >
+                {isSubmitting ? (
+                  "Procesando..."
+                ) : (
+                  <>
+                    <Send className="w-4 h-4 mr-2" />
+                    Enviar Brief
+                  </>
+                )}
+              </Button>
+            ) : (
+              <Button onClick={nextStep}>
+                Siguiente
+                <ChevronRight className="w-4 h-4 ml-2" />
+              </Button>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+    </div>
   );
 };
 
