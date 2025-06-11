@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -287,7 +286,7 @@ Fecha: ${new Date().toLocaleString('es-CL')}
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
               </svg>
             </div>
-            <h3 className="text-2xl font-bold text-gray-900 mb-4">
+            <h3 className="text-2xl font-semibold text-gray-900 mb-4">
               ¡Brief enviado exitosamente!
             </h3>
             <p className="text-gray-600 mb-8">
@@ -548,7 +547,7 @@ Fecha: ${new Date().toLocaleString('es-CL')}
         return (
           <div className="space-y-6">
             <div className="text-center">
-              <h3 className="text-2xl font-bold mb-2">Resumen de tu Brief</h3>
+              <h3 className="text-2xl font-semibold mb-2">Resumen de tu Brief</h3>
               <p className="text-muted-foreground mb-8">
                 Revisa toda la información antes de enviar. Recibirás una respuesta en las próximas 24 horas.
               </p>
@@ -695,14 +694,6 @@ Fecha: ${new Date().toLocaleString('es-CL')}
 
   return (
     <div className="w-full max-w-4xl mx-auto space-y-4">
-      {/* Auto-save button moved outside */}
-      <div className="flex justify-end">
-        <Button onClick={saveProgress} variant="outline" size="sm">
-          <Save className="w-4 h-4 mr-2" />
-          Guardado automático
-        </Button>
-      </div>
-
       <Card className="bg-accent-900">
         <CardHeader>
           <CardTitle className="text-xl font-semibold">{getStepTitle()}</CardTitle>
@@ -748,6 +739,14 @@ Fecha: ${new Date().toLocaleString('es-CL')}
           </div>
         </CardContent>
       </Card>
+
+      {/* Auto-save button moved to after the container */}
+      <div className="flex justify-end">
+        <Button onClick={saveProgress} variant="outline" size="sm">
+          <Save className="w-4 h-4 mr-2" />
+          Guardado automático
+        </Button>
+      </div>
     </div>
   );
 };
