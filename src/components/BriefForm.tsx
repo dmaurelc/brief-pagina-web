@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -286,7 +287,7 @@ Fecha: ${new Date().toLocaleString('es-CL')}
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
               </svg>
             </div>
-            <h3 className="text-2xl font-medium text-gray-900 mb-4">
+            <h3 className="text-2xl font-semibold text-gray-900 mb-4">
               ¡Brief enviado exitosamente!
             </h3>
             <p className="text-gray-600 mb-8">
@@ -696,7 +697,7 @@ Fecha: ${new Date().toLocaleString('es-CL')}
     <div className="w-full max-w-4xl mx-auto space-y-4">
       <Card className="bg-accent-900">
         <CardHeader>
-          <CardTitle className="text-xl font-medium">{getStepTitle()}</CardTitle>
+          <CardTitle className="text-xl font-semibold">{getStepTitle()}</CardTitle>
           <Progress value={(currentStep / totalSteps) * 100} className="w-full" />
           <p className="text-sm text-muted-foreground">Paso {currentStep} de {totalSteps} • Guardado automático activado</p>
         </CardHeader>
@@ -740,8 +741,8 @@ Fecha: ${new Date().toLocaleString('es-CL')}
         </CardContent>
       </Card>
 
-      {/* Auto-save button moved to after the container */}
-      <div className="flex justify-end">
+      {/* Auto-save button centered */}
+      <div className="flex justify-center">
         <Button onClick={saveProgress} variant="outline" size="sm">
           <Save className="w-4 h-4 mr-2" />
           Guardado automático
