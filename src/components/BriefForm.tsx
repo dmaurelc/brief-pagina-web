@@ -286,7 +286,7 @@ Fecha: ${new Date().toLocaleString('es-CL')}
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
               </svg>
             </div>
-            <h3 className="text-2xl font-semibold text-gray-900 mb-4">
+            <h3 className="text-2xl font-medium text-gray-900 mb-4">
               ¡Brief enviado exitosamente!
             </h3>
             <p className="text-gray-600 mb-8">
@@ -547,7 +547,7 @@ Fecha: ${new Date().toLocaleString('es-CL')}
         return (
           <div className="space-y-6">
             <div className="text-center">
-              <h3 className="text-2xl font-semibold mb-2">Resumen de tu Brief</h3>
+              <h3 className="text-2xl font-medium mb-2">Resumen de tu Brief</h3>
               <p className="text-muted-foreground mb-8">
                 Revisa toda la información antes de enviar. Recibirás una respuesta en las próximas 24 horas.
               </p>
@@ -558,7 +558,7 @@ Fecha: ${new Date().toLocaleString('es-CL')}
               <div className="border rounded-lg p-6 bg-card">
                 <div className="flex items-center mb-4">
                   <Building className="w-5 h-5 text-primary mr-2" />
-                  <h4 className="text-lg font-semibold">Información de la empresa</h4>
+                  <h4 className="text-lg font-medium">Información de la empresa</h4>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
@@ -588,7 +588,7 @@ Fecha: ${new Date().toLocaleString('es-CL')}
               <div className="border rounded-lg p-6 bg-card">
                 <div className="flex items-center mb-4">
                   <Briefcase className="w-5 h-5 text-primary mr-2" />
-                  <h4 className="text-lg font-semibold">Detalles del proyecto</h4>
+                  <h4 className="text-lg font-medium">Detalles del proyecto</h4>
                 </div>
                 <div className="space-y-4">
                   <div>
@@ -629,7 +629,7 @@ Fecha: ${new Date().toLocaleString('es-CL')}
               <div className="border rounded-lg p-6 bg-card">
                 <div className="flex items-center mb-4">
                   <DollarSign className="w-5 h-5 text-primary mr-2" />
-                  <h4 className="text-lg font-semibold">Presupuesto y objetivos</h4>
+                  <h4 className="text-lg font-medium">Presupuesto y objetivos</h4>
                 </div>
                 <div className="space-y-4">
                   <div>
@@ -651,7 +651,7 @@ Fecha: ${new Date().toLocaleString('es-CL')}
               <div className="border rounded-lg p-6 bg-card">
                 <div className="flex items-center mb-4">
                   <Settings className="w-5 h-5 text-primary mr-2" />
-                  <h4 className="text-lg font-semibold">Información técnica</h4>
+                  <h4 className="text-lg font-medium">Información técnica</h4>
                 </div>
                 <div className="space-y-4">
                   <div>
@@ -696,7 +696,7 @@ Fecha: ${new Date().toLocaleString('es-CL')}
     <div className="w-full max-w-4xl mx-auto space-y-4">
       <Card className="bg-accent-900">
         <CardHeader>
-          <CardTitle className="text-xl font-semibold">{getStepTitle()}</CardTitle>
+          <CardTitle className="text-xl font-medium">{getStepTitle()}</CardTitle>
           <Progress value={(currentStep / totalSteps) * 100} className="w-full" />
           <p className="text-sm text-muted-foreground">Paso {currentStep} de {totalSteps} • Guardado automático activado</p>
         </CardHeader>
