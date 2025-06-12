@@ -349,7 +349,7 @@ Fecha: ${new Date().toLocaleString('es-CL')}
             <h3 className="text-2xl font-semibold text-gray-900 mb-4">
               ¡Brief enviado exitosamente!
             </h3>
-            <p className="text-gray-600 mb-8">
+            <p className="text-white mb-8">
               Tu información ha sido guardada y analizada. Recibirás tu presupuesto personalizado en las próximas 24 horas.
             </p>
           </div>
@@ -376,7 +376,7 @@ Fecha: ${new Date().toLocaleString('es-CL')}
               <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
               </svg>
-              Crear nuevo brief
+              Solicitar nuevo presupuesto
             </Button>
           </div>
         </CardContent>
