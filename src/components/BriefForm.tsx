@@ -88,16 +88,13 @@ const pagesOptions = [
   'Blog',
   'Noticias',
   'Contacto',
-  'Ubicación',
-  'Testimonios',
-  'FAQ',
   'Términos y Condiciones',
   'Política de Privacidad'
 ];
 
 const featuresOptions = [
   'Galería de imágenes',
-  'Múltiples idiomas',
+  'Múlti lenguaje',
   'Integración con Newsletter',
   'Preguntas Frecuentes',
   'Testimonios de Clientes',
