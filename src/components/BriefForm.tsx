@@ -663,7 +663,7 @@ Fecha: ${new Date().toLocaleString('es-CL')}
                           {(formData.pages || []).map((page, index) => (
                             <span
                               key={index}
-                              className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800"
+                              className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-primary/10 text-primary"
                             >
                               {page}
                             </span>
