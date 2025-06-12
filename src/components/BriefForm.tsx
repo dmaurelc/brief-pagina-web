@@ -96,15 +96,13 @@ const pagesOptions = [
 ];
 
 const featuresOptions = [
-  'Formulario de contacto',
-  'Chat en vivo',
   'Galería de imágenes',
-  'Blog/Noticias',
   'Múltiples idiomas',
   'Integración con Newsletter',
   'Preguntas Frecuentes',
   'Testimonios de Clientes',
   'Clientes o Partners',
+  'Chat en vivo',
   'Chatbot con IA'
 ];
 
