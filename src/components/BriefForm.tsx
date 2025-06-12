@@ -23,6 +23,7 @@ interface FormData {
   // Sobre el proyecto
   projectType: string;
   projectDescription: string;
+  pages: string[];
   features: string[];
   timeline: string;
   
@@ -46,6 +47,7 @@ const initialFormData: FormData = {
   industry: '',
   projectType: '',
   projectDescription: '',
+  pages: [],
   features: [],
   timeline: '',
   budget: '',
@@ -75,6 +77,23 @@ const industryOptions = [
   'Construcción',
   'Legal',
   'Otros'
+];
+
+const pagesOptions = [
+  'Inicio',
+  'Nosotros',
+  'Servicios',
+  'Productos',
+  'Soluciones',
+  'Portafolio',
+  'Blog',
+  'Noticias',
+  'Contacto',
+  'Ubicación',
+  'Testimonios',
+  'FAQ',
+  'Términos y Condiciones',
+  'Política de Privacidad'
 ];
 
 const featuresOptions = [
@@ -128,6 +147,14 @@ const BriefForm = () => {
     // Los datos se guardan automáticamente por el useEffect de arriba
   };
 
+  const handlePageToggle = (page: string, checked: boolean) => {
+    const currentPages = formData.pages;
+    const updatedPages = checked
+      ? [...currentPages, page]
+      : currentPages.filter(p => p !== page);
+    updateFormData('pages', updatedPages);
+  };
+
   const handleFeatureToggle = (feature: string, checked: boolean) => {
     const currentFeatures = formData.features;
     const updatedFeatures = checked
@@ -171,6 +198,7 @@ const BriefForm = () => {
           industry: formData.industry,
           project_type: formData.projectType,
           project_description: formData.projectDescription,
+          pages: formData.pages,
           features: formData.features,
           timeline: formData.timeline,
           budget: formData.budget,
@@ -391,7 +419,7 @@ Fecha: ${new Date().toLocaleString('es-CL')}
 
       case 2:
         return (
-          <div className="space-y-4">
+          <div className="space-y-6">
             <div>
               <Label htmlFor="projectType">Tipo de proyecto *</Label>
               <Select value={formData.projectType} onValueChange={(value) => updateFormData('projectType', value)}>
@@ -407,6 +435,7 @@ Fecha: ${new Date().toLocaleString('es-CL')}
                 </SelectContent>
               </Select>
             </div>
+            
             <div>
               <Label htmlFor="projectDescription">Descripción del proyecto *</Label>
               <Textarea
@@ -418,9 +447,28 @@ Fecha: ${new Date().toLocaleString('es-CL')}
                 required
               />
             </div>
+
+            <div>
+              <Label>Páginas requeridas</Label>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 mt-2">
+                {pagesOptions.map((page) => (
+                  <div key={page} className="flex items-center space-x-2">
+                    <Checkbox
+                      id={page}
+                      checked={formData.pages.includes(page)}
+                      onCheckedChange={(checked) => handlePageToggle(page, checked as boolean)}
+                    />
+                    <Label htmlFor={page} className="text-sm cursor-pointer">
+                      {page}
+                    </Label>
+                  </div>
+                ))}
+              </div>
+            </div>
+
             <div>
               <Label>Funcionalidades requeridas</Label>
-              <div className="grid grid-cols-1 gap-3 mt-2">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 mt-2">
                 {featuresOptions.map((feature) => (
                   <div key={feature} className="flex items-center space-x-2">
                     <Checkbox
@@ -435,6 +483,7 @@ Fecha: ${new Date().toLocaleString('es-CL')}
                 ))}
               </div>
             </div>
+            
             <div>
               <Label htmlFor="timeline">Timeline esperado *</Label>
               <Select value={formData.timeline} onValueChange={(value) => updateFormData('timeline', value)}>
@@ -603,6 +652,25 @@ Fecha: ${new Date().toLocaleString('es-CL')}
                   <div>
                     <span className="text-sm font-medium text-muted-foreground">Timeline:</span>
                     <p className="text-sm mt-1">{formData.timeline || 'No especificado'}</p>
+                  </div>
+                  <div>
+                    <span className="text-sm font-medium text-muted-foreground">Páginas requeridas:</span>
+                    <div className="mt-1">
+                      {formData.pages.length > 0 ? (
+                        <div className="flex flex-wrap gap-2">
+                          {formData.pages.map((page, index) => (
+                            <span
+                              key={index}
+                              className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800"
+                            >
+                              {page}
+                            </span>
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="text-sm text-muted-foreground">Ninguna página seleccionada</p>
+                      )}
+                    </div>
                   </div>
                   <div>
                     <span className="text-sm font-medium text-muted-foreground">Funcionalidades requeridas:</span>

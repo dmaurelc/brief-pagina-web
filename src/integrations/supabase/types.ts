@@ -24,6 +24,7 @@ export type Database = {
           id: string
           industry: string
           main_goals: string
+          pages: string[] | null
           phone: string | null
           project_description: string
           project_type: string
@@ -45,6 +46,7 @@ export type Database = {
           id?: string
           industry: string
           main_goals: string
+          pages?: string[] | null
           phone?: string | null
           project_description: string
           project_type: string
@@ -66,6 +68,7 @@ export type Database = {
           id?: string
           industry?: string
           main_goals?: string
+          pages?: string[] | null
           phone?: string | null
           project_description?: string
           project_type?: string
