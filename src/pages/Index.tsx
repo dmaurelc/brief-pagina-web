@@ -12,7 +12,7 @@ const Index = () => {
               <img 
                 src="/logo-dmaurel-white.svg" 
                 alt="DMaurel - Desarrollo Web Profesional" 
-                className="w-36 h-auto"
+                className="w-32 h-auto"
               />
             </div>
             <div className="text-sm text-muted-foreground">

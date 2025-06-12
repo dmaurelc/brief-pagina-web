@@ -80,13 +80,13 @@ const industryOptions = [
 const featuresOptions = [
   'Formulario de contacto',
   'Chat en vivo',
-  'Sistema de reservas',
   'Galería de imágenes',
   'Blog/Noticias',
   'Múltiples idiomas',
-  'Newsletter',
-  'Búsqueda avanzada',
-  'Panel de administración',
+  'Integración con Newsletter',
+  'Preguntas Frecuentes',
+  'Testimonios de Clientes',
+  'Clientes o Partners',
   'Chatbot con IA'
 ];
 
