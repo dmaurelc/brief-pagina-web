@@ -106,6 +106,18 @@ const featuresOptions = [
   'Chatbot con IA'
 ];
 
+const getBudgetLabel = (budgetValue: string) => {
+  const budgetLabels: { [key: string]: string } = {
+    'menos-300000': 'Menos de $300.000 CLP',
+    '300000-500000': 'Entre $300.000 - $500.000 CLP',
+    '500000-800000': 'Entre $500.000 - $800.000 CLP',
+    '800000-1000000': 'Entre $800.000 - $1.000.000 CLP',
+    'mas-1000000': 'Más de $1.000.000 CLP',
+    'por-definir': 'Por definir'
+  };
+  return budgetLabels[budgetValue] || budgetValue;
+};
+
 const BriefForm = () => {
   const [currentStep, setCurrentStep] = useState(1);
   const [formData, setFormData] = useState<FormData>(initialFormData);
@@ -705,7 +717,7 @@ Fecha: ${new Date().toLocaleString('es-CL')}
                 <div className="space-y-4">
                   <div>
                     <span className="text-sm font-medium text-muted-foreground">Presupuesto disponible:</span>
-                    <p className="text-sm mt-1">{formData.budget || 'No especificado'}</p>
+                    <p className="text-sm mt-1">{getBudgetLabel(formData.budget) || 'No especificado'}</p>
                   </div>
                   <div>
                     <span className="text-sm font-medium text-muted-foreground">Objetivos principales:</span>
