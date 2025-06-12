@@ -233,12 +233,26 @@ const BriefForm = () => {
 
       console.log('Datos guardados en Supabase:', briefData);
 
-      // Luego enviar email de notificación con resumen
+      // Generar PDF con los datos del brief
+      console.log('Generando PDF...');
+      const pdfResponse = await supabase.functions.invoke('generate-brief-pdf', {
+        body: { briefId: briefData.id }
+      });
+
+      if (pdfResponse.error) {
+        console.error('Error generando PDF:', pdfResponse.error);
+        throw new Error('Error al generar el PDF');
+      }
+
+      const { pdfUrl, fileName } = pdfResponse.data;
+      console.log('PDF generado exitosamente:', pdfUrl);
+
+      // Enviar email de notificación con enlace al PDF
       const formDataToSend = new FormData();
       formDataToSend.append('access_key', 'afffbf8d-e6b6-4f58-b6df-2615afc756f5');
       formDataToSend.append('subject', `Nuevo Brief Recibido - ${formData.companyName}`);
       
-      // Crear mensaje simplificado solo con datos de contacto
+      // Crear mensaje con enlace al PDF
       const summaryMessage = `
 NUEVO BRIEF RECIBIDO - Brief Página Web
 
@@ -250,13 +264,17 @@ Teléfono: ${formData.phone || 'No proporcionado'}
 Industria: ${formData.industry}
 
 === PRESUPUESTO Y OBJETIVOS ===
-Presupuesto disponible: ${formData.budget}
+Presupuesto disponible: ${getBudgetLabel(formData.budget)}
 
 === INFORMACIÓN TÉCNICA ===
 Sitio web actual: ${formData.existingWebsite || 'No tiene sitio web actual'}
 
+=== DOCUMENTOS ===
+📄 Brief completo en PDF: ${pdfUrl}
+📥 Nombre del archivo: ${fileName}
+
 ---
-NOTA: Los detalles completos del proyecto han sido guardados en la base de datos.
+NOTA: Los detalles completos del proyecto están disponibles en el PDF adjunto.
 ID del Brief: ${briefData.id}
 Fecha: ${new Date().toLocaleString('es-CL')}
       `;
@@ -270,18 +288,17 @@ Fecha: ${new Date().toLocaleString('es-CL')}
 
       if (emailResponse.ok) {
         toast({
-          title: "¡Brief enviado y guardado exitosamente!",
-          description: "Los datos han sido guardados y recibirás tu presupuesto personalizado en las próximas 24 horas.",
+          title: "¡Brief enviado y PDF generado exitosamente!",
+          description: "Los datos han sido guardados y el PDF ha sido generado. Recibirás tu presupuesto personalizado en las próximas 24 horas.",
         });
         
-        // Cambiar a estado de enviado en lugar de limpiar inmediatamente
         setIsSubmitted(true);
       } else {
         console.error('Error enviando email:', emailResponse);
-        // Aunque el email falle, los datos ya están guardados en Supabase
+        // Aunque el email falle, los datos ya están guardados en Supabase y el PDF generado
         toast({
-          title: "Datos guardados correctamente",
-          description: "Los datos han sido guardados. Hubo un problema con la notificación por email pero te contactaremos pronto.",
+          title: "Datos guardados y PDF generado",
+          description: "Los datos han sido guardados y el PDF generado. Hubo un problema con la notificación por email pero te contactaremos pronto.",
         });
         
         setIsSubmitted(true);
