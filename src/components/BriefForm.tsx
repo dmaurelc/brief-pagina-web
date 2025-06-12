@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -123,7 +122,12 @@ const BriefForm = () => {
     if (savedData) {
       try {
         const parsedData = JSON.parse(savedData);
-        setFormData(parsedData);
+        // Asegurar que pages y features siempre sean arrays
+        setFormData({
+          ...parsedData,
+          pages: Array.isArray(parsedData.pages) ? parsedData.pages : [],
+          features: Array.isArray(parsedData.features) ? parsedData.features : []
+        });
         toast({
           title: "Datos recuperados",
           description: "Se han cargado los datos guardados anteriormente.",
@@ -148,7 +152,7 @@ const BriefForm = () => {
   };
 
   const handlePageToggle = (page: string, checked: boolean) => {
-    const currentPages = formData.pages;
+    const currentPages = Array.isArray(formData.pages) ? formData.pages : [];
     const updatedPages = checked
       ? [...currentPages, page]
       : currentPages.filter(p => p !== page);
@@ -156,7 +160,7 @@ const BriefForm = () => {
   };
 
   const handleFeatureToggle = (feature: string, checked: boolean) => {
-    const currentFeatures = formData.features;
+    const currentFeatures = Array.isArray(formData.features) ? formData.features : [];
     const updatedFeatures = checked
       ? [...currentFeatures, feature]
       : currentFeatures.filter(f => f !== feature);
@@ -455,7 +459,7 @@ Fecha: ${new Date().toLocaleString('es-CL')}
                   <div key={page} className="flex items-center space-x-2">
                     <Checkbox
                       id={page}
-                      checked={formData.pages.includes(page)}
+                      checked={(formData.pages || []).includes(page)}
                       onCheckedChange={(checked) => handlePageToggle(page, checked as boolean)}
                     />
                     <Label htmlFor={page} className="text-sm cursor-pointer">
@@ -473,7 +477,7 @@ Fecha: ${new Date().toLocaleString('es-CL')}
                   <div key={feature} className="flex items-center space-x-2">
                     <Checkbox
                       id={feature}
-                      checked={formData.features.includes(feature)}
+                      checked={(formData.features || []).includes(feature)}
                       onCheckedChange={(checked) => handleFeatureToggle(feature, checked as boolean)}
                     />
                     <Label htmlFor={feature} className="text-sm cursor-pointer">
@@ -656,9 +660,9 @@ Fecha: ${new Date().toLocaleString('es-CL')}
                   <div>
                     <span className="text-sm font-medium text-muted-foreground">Páginas requeridas:</span>
                     <div className="mt-1">
-                      {formData.pages.length > 0 ? (
+                      {(formData.pages || []).length > 0 ? (
                         <div className="flex flex-wrap gap-2">
-                          {formData.pages.map((page, index) => (
+                          {(formData.pages || []).map((page, index) => (
                             <span
                               key={index}
                               className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800"
@@ -675,9 +679,9 @@ Fecha: ${new Date().toLocaleString('es-CL')}
                   <div>
                     <span className="text-sm font-medium text-muted-foreground">Funcionalidades requeridas:</span>
                     <div className="mt-1">
-                      {formData.features.length > 0 ? (
+                      {(formData.features || []).length > 0 ? (
                         <div className="flex flex-wrap gap-2">
-                          {formData.features.map((feature, index) => (
+                          {(formData.features || []).map((feature, index) => (
                             <span
                               key={index}
                               className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-primary/10 text-primary"
