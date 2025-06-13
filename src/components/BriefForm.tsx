@@ -10,6 +10,13 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { ChevronLeft, ChevronRight, Send, Save, Building, Briefcase, DollarSign, Settings } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
+import { 
+  validateCurrentStep, 
+  validateAllRequiredFields, 
+  getFirstIncompleteStep, 
+  hasFieldError,
+  fieldLabels 
+} from '@/utils/formValidation';
 
 interface FormData {
   // Información de la empresa
@@ -120,6 +127,7 @@ const BriefForm = () => {
   const [formData, setFormData] = useState<FormData>(initialFormData);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
+  const [validationErrors, setValidationErrors] = useState<string[]>([]);
 
   const totalSteps = 5;
 
@@ -155,7 +163,11 @@ const BriefForm = () => {
       ...prev,
       [field]: value
     }));
-    // Los datos se guardan automáticamente por el useEffect de arriba
+    
+    // Clear validation errors when user starts typing
+    if (validationErrors.length > 0) {
+      setValidationErrors([]);
+    }
   };
 
   const handlePageToggle = (page: string, checked: boolean) => {
@@ -183,18 +195,41 @@ const BriefForm = () => {
   };
 
   const nextStep = () => {
+    // Validate current step before advancing
+    const validation = validateCurrentStep(formData, currentStep);
+    
+    if (!validation.isValid) {
+      setValidationErrors(validation.missingFields);
+      return; // Don't advance if validation fails
+    }
+
+    // Clear validation errors and advance
+    setValidationErrors([]);
     if (currentStep < totalSteps) {
       setCurrentStep(currentStep + 1);
     }
   };
 
   const prevStep = () => {
+    // Always allow going back, clear validation errors
+    setValidationErrors([]);
     if (currentStep > 1) {
       setCurrentStep(currentStep - 1);
     }
   };
 
   const submitForm = async () => {
+    // Final validation before submission
+    const validation = validateAllRequiredFields(formData);
+    
+    if (!validation.isValid) {
+      // Navigate to the first incomplete step
+      const firstIncompleteStep = getFirstIncompleteStep(formData);
+      setCurrentStep(firstIncompleteStep);
+      setValidationErrors(validation.missingFields);
+      return;
+    }
+
     setIsSubmitting(true);
     
     try {
@@ -332,6 +367,18 @@ Fecha: ${new Date().toLocaleString('es-CL')}
     });
   };
 
+  // Helper function to get input className with error styling
+  const getInputClassName = (fieldName: keyof FormData) => {
+    const hasError = hasFieldError(formData, fieldName, currentStep) && validationErrors.length > 0;
+    return hasError ? "border-red-500 focus:border-red-500 focus:ring-red-200" : "";
+  };
+
+  // Helper function to get label className with error styling
+  const getLabelClassName = (fieldName: keyof FormData) => {
+    const hasError = hasFieldError(formData, fieldName, currentStep) && validationErrors.length > 0;
+    return hasError ? "text-red-600 font-medium" : "";
+  };
+
   // Si ya fue enviado, mostrar opciones
   if (isSubmitted) {
     return (
@@ -387,33 +434,42 @@ Fecha: ${new Date().toLocaleString('es-CL')}
         return (
           <div className="space-y-4">
             <div>
-              <Label htmlFor="companyName">Nombre de la empresa *</Label>
+              <Label htmlFor="companyName" className={getLabelClassName('companyName')}>
+                Nombre de la empresa *
+              </Label>
               <Input
                 id="companyName"
                 value={formData.companyName}
                 onChange={(e) => updateFormData('companyName', e.target.value)}
                 placeholder="Ej: Mi Empresa S.A."
+                className={getInputClassName('companyName')}
                 required
               />
             </div>
             <div>
-              <Label htmlFor="contactName">Nombre de contacto *</Label>
+              <Label htmlFor="contactName" className={getLabelClassName('contactName')}>
+                Nombre de contacto *
+              </Label>
               <Input
                 id="contactName"
                 value={formData.contactName}
                 onChange={(e) => updateFormData('contactName', e.target.value)}
                 placeholder="Tu nombre completo"
+                className={getInputClassName('contactName')}
                 required
               />
             </div>
             <div>
-              <Label htmlFor="email">Email *</Label>
+              <Label htmlFor="email" className={getLabelClassName('email')}>
+                Email *
+              </Label>
               <Input
                 id="email"
                 type="email"
                 value={formData.email}
                 onChange={(e) => updateFormData('email', e.target.value)}
                 placeholder="tu@empresa.com"
+                className={getInputClassName('email')}
                 required
               />
             </div>
@@ -428,9 +484,14 @@ Fecha: ${new Date().toLocaleString('es-CL')}
               />
             </div>
             <div>
-              <Label htmlFor="industry">Industria/Sector *</Label>
-              <Select value={formData.industry} onValueChange={(value) => updateFormData('industry', value)}>
-                <SelectTrigger>
+              <Label htmlFor="industry" className={getLabelClassName('industry')}>
+                Industria/Sector *
+              </Label>
+              <Select 
+                value={formData.industry} 
+                onValueChange={(value) => updateFormData('industry', value)}
+              >
+                <SelectTrigger className={getInputClassName('industry')}>
                   <SelectValue placeholder="Selecciona tu industria" />
                 </SelectTrigger>
                 <SelectContent>
@@ -449,9 +510,14 @@ Fecha: ${new Date().toLocaleString('es-CL')}
         return (
           <div className="space-y-6">
             <div>
-              <Label htmlFor="projectType">Tipo de proyecto *</Label>
-              <Select value={formData.projectType} onValueChange={(value) => updateFormData('projectType', value)}>
-                <SelectTrigger>
+              <Label htmlFor="projectType" className={getLabelClassName('projectType')}>
+                Tipo de proyecto *
+              </Label>
+              <Select 
+                value={formData.projectType} 
+                onValueChange={(value) => updateFormData('projectType', value)}
+              >
+                <SelectTrigger className={getInputClassName('projectType')}>
                   <SelectValue placeholder="Selecciona una opción" />
                 </SelectTrigger>
                 <SelectContent>
@@ -465,13 +531,16 @@ Fecha: ${new Date().toLocaleString('es-CL')}
             </div>
             
             <div>
-              <Label htmlFor="projectDescription">Descripción del proyecto *</Label>
+              <Label htmlFor="projectDescription" className={getLabelClassName('projectDescription')}>
+                Descripción del proyecto *
+              </Label>
               <Textarea
                 id="projectDescription"
                 value={formData.projectDescription}
                 onChange={(e) => updateFormData('projectDescription', e.target.value)}
                 placeholder="Describe en detalle qué necesitas..."
                 rows={4}
+                className={getInputClassName('projectDescription')}
                 required
               />
             </div>
@@ -513,9 +582,14 @@ Fecha: ${new Date().toLocaleString('es-CL')}
             </div>
             
             <div>
-              <Label htmlFor="timeline">Timeline esperado *</Label>
-              <Select value={formData.timeline} onValueChange={(value) => updateFormData('timeline', value)}>
-                <SelectTrigger>
+              <Label htmlFor="timeline" className={getLabelClassName('timeline')}>
+                Timeline esperado *
+              </Label>
+              <Select 
+                value={formData.timeline} 
+                onValueChange={(value) => updateFormData('timeline', value)}
+              >
+                <SelectTrigger className={getInputClassName('timeline')}>
                   <SelectValue placeholder="Selecciona un plazo" />
                 </SelectTrigger>
                 <SelectContent>
@@ -535,9 +609,14 @@ Fecha: ${new Date().toLocaleString('es-CL')}
         return (
           <div className="space-y-4">
             <div>
-              <Label htmlFor="budget">Presupuesto disponible *</Label>
-              <Select value={formData.budget} onValueChange={(value) => updateFormData('budget', value)}>
-                <SelectTrigger>
+              <Label htmlFor="budget" className={getLabelClassName('budget')}>
+                Presupuesto disponible *
+              </Label>
+              <Select 
+                value={formData.budget} 
+                onValueChange={(value) => updateFormData('budget', value)}
+              >
+                <SelectTrigger className={getInputClassName('budget')}>
                   <SelectValue placeholder="Selecciona un rango" />
                 </SelectTrigger>
                 <SelectContent>
@@ -551,24 +630,30 @@ Fecha: ${new Date().toLocaleString('es-CL')}
               </Select>
             </div>
             <div>
-              <Label htmlFor="mainGoals">Objetivos principales del sitio web *</Label>
+              <Label htmlFor="mainGoals" className={getLabelClassName('mainGoals')}>
+                Objetivos principales del sitio web *
+              </Label>
               <Textarea
                 id="mainGoals"
                 value={formData.mainGoals}
                 onChange={(e) => updateFormData('mainGoals', e.target.value)}
                 placeholder="¿Qué esperas lograr con el sitio web? (generar leads, ventas, branding, etc.)"
                 rows={3}
+                className={getInputClassName('mainGoals')}
                 required
               />
             </div>
             <div>
-              <Label htmlFor="targetAudience">Público objetivo *</Label>
+              <Label htmlFor="targetAudience" className={getLabelClassName('targetAudience')}>
+                Público objetivo *
+              </Label>
               <Textarea
                 id="targetAudience"
                 value={formData.targetAudience}
                 onChange={(e) => updateFormData('targetAudience', e.target.value)}
                 placeholder="Describe a tu audiencia ideal (edad, intereses, comportamiento, etc.)"
                 rows={3}
+                className={getInputClassName('targetAudience')}
                 required
               />
             </div>
@@ -795,7 +880,21 @@ Fecha: ${new Date().toLocaleString('es-CL')}
         <CardHeader>
           <CardTitle className="text-xl font-medium">{getStepTitle()}</CardTitle>
           <Progress value={(currentStep / totalSteps) * 100} className="w-full" />
-          <p className="text-sm text-muted-foreground">Paso {currentStep} de {totalSteps} • Guardado automático activado</p>
+          <p className="text-sm text-muted-foreground">
+            Paso {currentStep} de {totalSteps} • Guardado automático activado
+          </p>
+          {validationErrors.length > 0 && (
+            <div className="bg-red-50 border border-red-200 rounded-md p-3 mt-2">
+              <p className="text-sm text-red-800 font-medium">
+                Por favor, completa los siguientes campos obligatorios:
+              </p>
+              <ul className="text-sm text-red-700 mt-1 list-disc list-inside">
+                {validationErrors.map((field, index) => (
+                  <li key={index}>{field}</li>
+                ))}
+              </ul>
+            </div>
+          )}
         </CardHeader>
         
         <CardContent>
