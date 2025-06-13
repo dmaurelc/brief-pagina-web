@@ -27,13 +27,13 @@ interface ValidationResult {
   errorMessage?: string;
 }
 
-// Define required fields for each step with new requirements
+// Define required fields for each step with updated requirements
 export const getRequiredFieldsByStep = (step: number): (keyof FormData)[] => {
   switch (step) {
     case 1:
       return ['companyName', 'contactName', 'email', 'phone', 'industry'];
     case 2:
-      return ['projectType', 'projectDescription', 'pages', 'features', 'timeline'];
+      return ['projectType', 'projectDescription', 'pages', 'timeline'];
     case 3:
       return ['budget', 'mainGoals', 'targetAudience'];
     case 4:
@@ -45,7 +45,7 @@ export const getRequiredFieldsByStep = (step: number): (keyof FormData)[] => {
   }
 };
 
-// Field labels for user-friendly error messages with updated asterisks
+// Field labels for user-friendly error messages
 export const fieldLabels: Record<keyof FormData, string> = {
   companyName: 'Nombre de la empresa',
   contactName: 'Nombre de contacto',
@@ -81,14 +81,10 @@ export const validateCurrentStep = (formData: FormData, currentStep: number): Va
   requiredFields.forEach(field => {
     const value = formData[field];
     
-    // Special validation for arrays
+    // Special validation for pages only (features are now optional)
     if (field === 'pages') {
       if (!Array.isArray(value) || value.length < 4) {
         missingFields.push('Páginas requeridas (mínimo 4)');
-      }
-    } else if (field === 'features') {
-      if (!Array.isArray(value) || value.length < 1) {
-        missingFields.push('Funcionalidades requeridas (mínimo 1)');
       }
     } else {
       // Regular field validation
@@ -143,14 +139,10 @@ export const validateAllRequiredFields = (formData: FormData): ValidationResult 
   allRequiredFields.forEach(field => {
     const value = formData[field];
     
-    // Special validation for arrays
+    // Special validation for pages only (features are now optional)
     if (field === 'pages') {
       if (!Array.isArray(value) || value.length < 4) {
         missingFields.push('Páginas requeridas (mínimo 4)');
-      }
-    } else if (field === 'features') {
-      if (!Array.isArray(value) || value.length < 1) {
-        missingFields.push('Funcionalidades requeridas (mínimo 1)');
       }
     } else {
       // Regular field validation
@@ -211,11 +203,9 @@ export const hasFieldError = (formData: FormData, fieldName: keyof FormData, cur
 
   const value = formData[fieldName];
   
-  // Special validation for arrays
+  // Special validation for pages only (features are now optional)
   if (fieldName === 'pages') {
     return !Array.isArray(value) || value.length < 4;
-  } else if (fieldName === 'features') {
-    return !Array.isArray(value) || value.length < 1;
   }
   
   // Regular field validation

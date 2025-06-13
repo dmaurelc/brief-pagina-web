@@ -567,14 +567,11 @@ Fecha: ${new Date().toLocaleString('es-CL')}
                   </div>
                 ))}
               </div>
-              {hasFieldError(formData, 'pages', currentStep) && validationErrors.length > 0 && (
-                <p className="text-sm text-red-600 mt-1">Selecciona al menos 4 páginas</p>
-              )}
             </div>
 
             <div>
-              <Label className={getLabelClassName('features')}>
-                Funcionalidades requeridas * (mínimo 1)
+              <Label>
+                Funcionalidades (opcional)
               </Label>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 mt-2">
                 {featuresOptions.map((feature) => (
@@ -590,9 +587,6 @@ Fecha: ${new Date().toLocaleString('es-CL')}
                   </div>
                 ))}
               </div>
-              {hasFieldError(formData, 'features', currentStep) && validationErrors.length > 0 && (
-                <p className="text-sm text-red-600 mt-1">Selecciona al menos 1 funcionalidad</p>
-              )}
             </div>
             
             <div>
