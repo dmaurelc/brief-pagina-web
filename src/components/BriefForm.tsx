@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -474,7 +475,7 @@ const BriefForm = () => {
 
       const { error } = await supabase
         .from('briefs')
-        .insert([briefData]);
+        .insert(briefData);
 
       if (error) throw error;
     },

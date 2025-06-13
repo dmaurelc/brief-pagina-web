@@ -1,3 +1,4 @@
+
 import { useAuth } from '@/hooks/useAuth';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -58,7 +59,7 @@ const AdminDashboard = () => {
 
   // Mutación para actualizar brief
   const updateBrief = useMutation({
-    mutationFn: async ({ id, status, admin_notes }: { id: string; status: string; admin_notes: string }) => {
+    mutationFn: async ({ id, status, admin_notes }: { id: string; status: BriefStatus; admin_notes: string }) => {
       const { error } = await supabase
         .from('briefs')
         .update({ 
@@ -290,7 +291,7 @@ const AdminDashboard = () => {
                       <div className="space-y-3 border-t pt-4">
                         <div>
                           <label className="text-sm font-medium">Estado:</label>
-                          <Select value={editForm.status} onValueChange={(value) => setEditForm(prev => ({ ...prev, status: value }))}>
+                          <Select value={editForm.status} onValueChange={(value: BriefStatus) => setEditForm(prev => ({ ...prev, status: value }))}>
                             <SelectTrigger className="w-full mt-1">
                               <SelectValue />
                             </SelectTrigger>
