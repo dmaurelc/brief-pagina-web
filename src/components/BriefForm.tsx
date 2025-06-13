@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -157,6 +158,126 @@ const ProjectInfoStep: React.FC<StepProps> = ({ form }) => (
     />
     <FormField
       control={form.control}
+      name="pages"
+      render={({ field }) => (
+        <FormItem className="flex flex-col space-y-1.5">
+          <FormLabel>Páginas requeridas</FormLabel>
+          <div className="space-y-1">
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                checked={field.value?.includes("inicio")}
+                onCheckedChange={(checked) => {
+                  if (checked) {
+                    field.onChange([...field.value || [], "inicio"])
+                  } else {
+                    field.onChange(field.value?.filter((value) => value !== "inicio"))
+                  }
+                }}
+              />
+              <label className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+                Inicio
+              </label>
+            </div>
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                checked={field.value?.includes("nosotros")}
+                onCheckedChange={(checked) => {
+                  if (checked) {
+                    field.onChange([...field.value || [], "nosotros"])
+                  } else {
+                    field.onChange(field.value?.filter((value) => value !== "nosotros"))
+                  }
+                }}
+              />
+              <label className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+                Nosotros / Acerca de
+              </label>
+            </div>
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                checked={field.value?.includes("servicios")}
+                onCheckedChange={(checked) => {
+                  if (checked) {
+                    field.onChange([...field.value || [], "servicios"])
+                  } else {
+                    field.onChange(field.value?.filter((value) => value !== "servicios"))
+                  }
+                }}
+              />
+              <label className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+                Servicios / Productos
+              </label>
+            </div>
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                checked={field.value?.includes("portafolio")}
+                onCheckedChange={(checked) => {
+                  if (checked) {
+                    field.onChange([...field.value || [], "portafolio"])
+                  } else {
+                    field.onChange(field.value?.filter((value) => value !== "portafolio"))
+                  }
+                }}
+              />
+              <label className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+                Portafolio / Proyectos
+              </label>
+            </div>
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                checked={field.value?.includes("contacto")}
+                onCheckedChange={(checked) => {
+                  if (checked) {
+                    field.onChange([...field.value || [], "contacto"])
+                  } else {
+                    field.onChange(field.value?.filter((value) => value !== "contacto"))
+                  }
+                }}
+              />
+              <label className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+                Contacto
+              </label>
+            </div>
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                checked={field.value?.includes("blog")}
+                onCheckedChange={(checked) => {
+                  if (checked) {
+                    field.onChange([...field.value || [], "blog"])
+                  } else {
+                    field.onChange(field.value?.filter((value) => value !== "blog"))
+                  }
+                }}
+              />
+              <label className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+                Blog / Noticias
+              </label>
+            </div>
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                checked={field.value?.includes("tienda")}
+                onCheckedChange={(checked) => {
+                  if (checked) {
+                    field.onChange([...field.value || [], "tienda"])
+                  } else {
+                    field.onChange(field.value?.filter((value) => value !== "tienda"))
+                  }
+                }}
+              />
+              <label className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+                Tienda online
+              </label>
+            </div>
+          </div>
+          <FormDescription>
+            ¿Qué páginas necesitas en tu sitio web?
+          </FormDescription>
+          <FormMessage />
+        </FormItem>
+      )}
+    />
+    <FormField
+      control={form.control}
       name="features"
       render={({ field }) => (
         <FormItem className="flex flex-col space-y-1.5">
@@ -173,10 +294,7 @@ const ProjectInfoStep: React.FC<StepProps> = ({ form }) => (
                   }
                 }}
               />
-              <label
-                htmlFor="blog"
-                className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-              >
+              <label className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
                 Blog
               </label>
             </div>
@@ -191,10 +309,7 @@ const ProjectInfoStep: React.FC<StepProps> = ({ form }) => (
                   }
                 }}
               />
-              <label
-                htmlFor="galeria"
-                className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-              >
+              <label className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
                 Galería de imágenes
               </label>
             </div>
@@ -209,10 +324,7 @@ const ProjectInfoStep: React.FC<StepProps> = ({ form }) => (
                   }
                 }}
               />
-              <label
-                htmlFor="tienda"
-                className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-              >
+              <label className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
                 Tienda online
               </label>
             </div>
@@ -227,10 +339,7 @@ const ProjectInfoStep: React.FC<StepProps> = ({ form }) => (
                   }
                 }}
               />
-              <label
-                htmlFor="reservas"
-                className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-              >
+              <label className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
                 Sistema de reservas
               </label>
             </div>
@@ -245,10 +354,7 @@ const ProjectInfoStep: React.FC<StepProps> = ({ form }) => (
                   }
                 }}
               />
-              <label
-                htmlFor="login"
-                className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-              >
+              <label className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
                 Login de usuarios
               </label>
             </div>
@@ -451,6 +557,7 @@ const BriefForm = () => {
       industry: '',
       project_type: 'nuevo',
       project_description: '',
+      pages: [],
       features: [],
       timeline: 'moderado',
       budget: 'medio',
@@ -477,6 +584,7 @@ const BriefForm = () => {
         industry: data.industry,
         project_type: data.project_type,
         project_description: data.project_description,
+        pages: data.pages || [],
         features: data.features || [],
         timeline: data.timeline,
         budget: data.budget,

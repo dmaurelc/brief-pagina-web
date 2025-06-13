@@ -11,6 +11,7 @@ export const briefFormSchema = z.object({
   industry: z.string().min(1, 'La industria es requerida'),
   project_type: z.string().min(1, 'El tipo de proyecto es requerido'),
   project_description: z.string().min(1, 'La descripción del proyecto es requerida'),
+  pages: z.array(z.string()).min(1, 'Debes seleccionar al menos una página'),
   features: z.array(z.string()).default([]),
   timeline: z.string().min(1, 'El timeline es requerido'),
   budget: z.string().min(1, 'El presupuesto es requerido'),
