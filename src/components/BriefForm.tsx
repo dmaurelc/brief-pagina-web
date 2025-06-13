@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -14,6 +13,9 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { briefFormSchema, type BriefFormData } from '@/utils/formValidation';
+import type { Database } from '@/integrations/supabase/types';
+
+type BriefInsert = Database['public']['Tables']['briefs']['Insert'];
 
 interface StepProps {
   form: any;
@@ -467,8 +469,23 @@ const BriefForm = () => {
         throw new Error('Usuario no autenticado');
       }
 
-      const briefData = {
-        ...data,
+      const briefData: BriefInsert = {
+        company_name: data.company_name,
+        contact_name: data.contact_name,
+        email: data.email,
+        phone: data.phone || null,
+        industry: data.industry,
+        project_type: data.project_type,
+        project_description: data.project_description,
+        features: data.features || [],
+        timeline: data.timeline,
+        budget: data.budget,
+        main_goals: data.main_goals,
+        target_audience: data.target_audience,
+        existing_website: data.existing_website || null,
+        competitor_websites: data.competitor_websites || null,
+        design_preferences: data.design_preferences || null,
+        additional_notes: data.additional_notes || null,
         user_id: user.id,
         status: 'pending' as const,
       };
