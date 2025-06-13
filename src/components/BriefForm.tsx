@@ -907,18 +907,6 @@ Fecha: ${new Date().toLocaleString('es-CL')}
           <p className="text-sm text-muted-foreground">
             Paso {currentStep} de {totalSteps} • Guardado automático activado
           </p>
-          {validationErrors.length > 0 && (
-            <div className="bg-red-50 border border-red-200 rounded-md p-3 mt-2">
-              <p className="text-sm text-red-800 font-medium">
-                Por favor, completa los siguientes campos obligatorios:
-              </p>
-              <ul className="text-sm text-red-700 mt-1 list-disc list-inside">
-                {validationErrors.map((field, index) => (
-                  <li key={index}>{field}</li>
-                ))}
-              </ul>
-            </div>
-          )}
         </CardHeader>
         
         <CardContent>
