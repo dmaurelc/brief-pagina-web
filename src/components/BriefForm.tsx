@@ -474,13 +474,17 @@ Fecha: ${new Date().toLocaleString('es-CL')}
               />
             </div>
             <div>
-              <Label htmlFor="phone">Teléfono</Label>
+              <Label htmlFor="phone" className={getLabelClassName('phone')}>
+                Teléfono *
+              </Label>
               <Input
                 id="phone"
                 type="tel"
                 value={formData.phone}
                 onChange={(e) => updateFormData('phone', e.target.value)}
                 placeholder="+56 9 1234 5678"
+                className={getInputClassName('phone')}
+                required
               />
             </div>
             <div>
@@ -546,7 +550,9 @@ Fecha: ${new Date().toLocaleString('es-CL')}
             </div>
 
             <div>
-              <Label>Páginas requeridas</Label>
+              <Label className={getLabelClassName('pages')}>
+                Páginas requeridas * (mínimo 4)
+              </Label>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 mt-2">
                 {pagesOptions.map((page) => (
                   <div key={page} className="flex items-center space-x-2">
@@ -561,10 +567,15 @@ Fecha: ${new Date().toLocaleString('es-CL')}
                   </div>
                 ))}
               </div>
+              {hasFieldError(formData, 'pages', currentStep) && validationErrors.length > 0 && (
+                <p className="text-sm text-red-600 mt-1">Selecciona al menos 4 páginas</p>
+              )}
             </div>
 
             <div>
-              <Label>Funcionalidades requeridas</Label>
+              <Label className={getLabelClassName('features')}>
+                Funcionalidades requeridas * (mínimo 1)
+              </Label>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 mt-2">
                 {featuresOptions.map((feature) => (
                   <div key={feature} className="flex items-center space-x-2">
@@ -579,6 +590,9 @@ Fecha: ${new Date().toLocaleString('es-CL')}
                   </div>
                 ))}
               </div>
+              {hasFieldError(formData, 'features', currentStep) && validationErrors.length > 0 && (
+                <p className="text-sm text-red-600 mt-1">Selecciona al menos 1 funcionalidad</p>
+              )}
             </div>
             
             <div>
@@ -664,43 +678,59 @@ Fecha: ${new Date().toLocaleString('es-CL')}
         return (
           <div className="space-y-4">
             <div>
-              <Label htmlFor="existingWebsite">Sitio web actual (si existe)</Label>
+              <Label htmlFor="existingWebsite" className={getLabelClassName('existingWebsite')}>
+                Sitio web actual *
+              </Label>
               <Input
                 id="existingWebsite"
                 type="url"
                 value={formData.existingWebsite}
                 onChange={(e) => updateFormData('existingWebsite', e.target.value)}
-                placeholder="https://www.tusitio.com"
+                placeholder="https://www.tusitio.com (o escribe 'No tengo' si no tienes)"
+                className={getInputClassName('existingWebsite')}
+                required
               />
             </div>
             <div>
-              <Label htmlFor="competitorWebsites">Sitios web de referencia/competencia</Label>
+              <Label htmlFor="competitorWebsites" className={getLabelClassName('competitorWebsites')}>
+                Sitios web de competencia *
+              </Label>
               <Textarea
                 id="competitorWebsites"
                 value={formData.competitorWebsites}
                 onChange={(e) => updateFormData('competitorWebsites', e.target.value)}
                 placeholder="URLs de sitios que te gustan o son tu competencia"
                 rows={3}
+                className={getInputClassName('competitorWebsites')}
+                required
               />
             </div>
             <div>
-              <Label htmlFor="designPreferences">Preferencias de diseño</Label>
+              <Label htmlFor="designPreferences" className={getLabelClassName('designPreferences')}>
+                Preferencias de diseño *
+              </Label>
               <Textarea
                 id="designPreferences"
                 value={formData.designPreferences}
                 onChange={(e) => updateFormData('designPreferences', e.target.value)}
                 placeholder="Colores, estilo, elementos que te gustan o no..."
                 rows={3}
+                className={getInputClassName('designPreferences')}
+                required
               />
             </div>
             <div>
-              <Label htmlFor="additionalNotes">Notas adicionales</Label>
+              <Label htmlFor="additionalNotes" className={getLabelClassName('additionalNotes')}>
+                Notas adicionales *
+              </Label>
               <Textarea
                 id="additionalNotes"
                 value={formData.additionalNotes}
                 onChange={(e) => updateFormData('additionalNotes', e.target.value)}
                 placeholder="Cualquier información adicional relevante"
                 rows={3}
+                className={getInputClassName('additionalNotes')}
+                required
               />
             </div>
           </div>

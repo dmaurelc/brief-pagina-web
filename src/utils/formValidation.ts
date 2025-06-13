@@ -27,17 +27,17 @@ interface ValidationResult {
   errorMessage?: string;
 }
 
-// Define required fields for each step
+// Define required fields for each step with new requirements
 export const getRequiredFieldsByStep = (step: number): (keyof FormData)[] => {
   switch (step) {
     case 1:
-      return ['companyName', 'contactName', 'email', 'industry'];
+      return ['companyName', 'contactName', 'email', 'phone', 'industry'];
     case 2:
-      return ['projectType', 'projectDescription', 'timeline'];
+      return ['projectType', 'projectDescription', 'pages', 'features', 'timeline'];
     case 3:
       return ['budget', 'mainGoals', 'targetAudience'];
     case 4:
-      return []; // All fields are optional in step 4
+      return ['existingWebsite', 'competitorWebsites', 'designPreferences', 'additionalNotes'];
     case 5:
       return []; // Step 5 is just review
     default:
@@ -45,7 +45,7 @@ export const getRequiredFieldsByStep = (step: number): (keyof FormData)[] => {
   }
 };
 
-// Field labels for user-friendly error messages
+// Field labels for user-friendly error messages with updated asterisks
 export const fieldLabels: Record<keyof FormData, string> = {
   companyName: 'Nombre de la empresa',
   contactName: 'Nombre de contacto',
@@ -72,7 +72,7 @@ export const isValidEmail = (email: string): boolean => {
   return emailRegex.test(email);
 };
 
-// Validate current step
+// Validate current step with improved array validation
 export const validateCurrentStep = (formData: FormData, currentStep: number): ValidationResult => {
   const requiredFields = getRequiredFieldsByStep(currentStep);
   const missingFields: string[] = [];
@@ -80,8 +80,21 @@ export const validateCurrentStep = (formData: FormData, currentStep: number): Va
   // Check for empty required fields
   requiredFields.forEach(field => {
     const value = formData[field];
-    if (!value || (typeof value === 'string' && value.trim() === '')) {
-      missingFields.push(fieldLabels[field]);
+    
+    // Special validation for arrays
+    if (field === 'pages') {
+      if (!Array.isArray(value) || value.length < 4) {
+        missingFields.push('Páginas requeridas (mínimo 4)');
+      }
+    } else if (field === 'features') {
+      if (!Array.isArray(value) || value.length < 1) {
+        missingFields.push('Funcionalidades requeridas (mínimo 1)');
+      }
+    } else {
+      // Regular field validation
+      if (!value || (typeof value === 'string' && value.trim() === '')) {
+        missingFields.push(fieldLabels[field]);
+      }
     }
   });
 
@@ -121,15 +134,29 @@ export const validateAllRequiredFields = (formData: FormData): ValidationResult 
   const allRequiredFields: (keyof FormData)[] = [
     ...getRequiredFieldsByStep(1),
     ...getRequiredFieldsByStep(2),
-    ...getRequiredFieldsByStep(3)
+    ...getRequiredFieldsByStep(3),
+    ...getRequiredFieldsByStep(4)
   ];
 
   const missingFields: string[] = [];
 
   allRequiredFields.forEach(field => {
     const value = formData[field];
-    if (!value || (typeof value === 'string' && value.trim() === '')) {
-      missingFields.push(fieldLabels[field]);
+    
+    // Special validation for arrays
+    if (field === 'pages') {
+      if (!Array.isArray(value) || value.length < 4) {
+        missingFields.push('Páginas requeridas (mínimo 4)');
+      }
+    } else if (field === 'features') {
+      if (!Array.isArray(value) || value.length < 1) {
+        missingFields.push('Funcionalidades requeridas (mínimo 1)');
+      }
+    } else {
+      // Regular field validation
+      if (!value || (typeof value === 'string' && value.trim() === '')) {
+        missingFields.push(fieldLabels[field]);
+      }
     }
   });
 
@@ -166,7 +193,7 @@ export const validateAllRequiredFields = (formData: FormData): ValidationResult 
 
 // Get the first step with missing required fields
 export const getFirstIncompleteStep = (formData: FormData): number => {
-  for (let step = 1; step <= 3; step++) {
+  for (let step = 1; step <= 4; step++) {
     const validation = validateCurrentStep(formData, step);
     if (!validation.isValid) {
       return step;
@@ -175,7 +202,7 @@ export const getFirstIncompleteStep = (formData: FormData): number => {
   return 1; // Default to first step if all are complete
 };
 
-// Check if a specific field has an error
+// Check if a specific field has an error - improved for arrays
 export const hasFieldError = (formData: FormData, fieldName: keyof FormData, currentStep: number): boolean => {
   const requiredFields = getRequiredFieldsByStep(currentStep);
   if (!requiredFields.includes(fieldName)) {
@@ -183,5 +210,14 @@ export const hasFieldError = (formData: FormData, fieldName: keyof FormData, cur
   }
 
   const value = formData[fieldName];
+  
+  // Special validation for arrays
+  if (fieldName === 'pages') {
+    return !Array.isArray(value) || value.length < 4;
+  } else if (fieldName === 'features') {
+    return !Array.isArray(value) || value.length < 1;
+  }
+  
+  // Regular field validation
   return !value || (typeof value === 'string' && value.trim() === '');
 };
