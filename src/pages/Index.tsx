@@ -1,4 +1,6 @@
 
+import { SignedIn, SignedOut, SignInButton, UserButton } from '@clerk/clerk-react';
+import { Button } from '@/components/ui/button';
 import BriefForm from '@/components/BriefForm';
 
 const Index = () => {
@@ -15,8 +17,26 @@ const Index = () => {
                 className="w-32 h-auto"
               />
             </div>
-            <div className="text-sm text-muted-foreground">
-              Brief Página Web
+            <div className="flex items-center space-x-4">
+              <div className="text-sm text-muted-foreground">
+                Brief Página Web
+              </div>
+              <SignedOut>
+                <SignInButton mode="modal">
+                  <Button variant="outline" size="sm">
+                    Iniciar Sesión
+                  </Button>
+                </SignInButton>
+              </SignedOut>
+              <SignedIn>
+                <UserButton 
+                  appearance={{
+                    elements: {
+                      avatarBox: "w-8 h-8"
+                    }
+                  }}
+                />
+              </SignedIn>
             </div>
           </div>
         </div>
