@@ -1,5 +1,29 @@
 
 import { toast } from '@/hooks/use-toast';
+import { z } from 'zod';
+
+// Zod schema para validación del formulario
+export const briefFormSchema = z.object({
+  company_name: z.string().min(1, 'El nombre de la empresa es requerido'),
+  contact_name: z.string().min(1, 'El nombre de contacto es requerido'),
+  email: z.string().email('Email inválido'),
+  phone: z.string().optional(),
+  industry: z.string().min(1, 'La industria es requerida'),
+  project_type: z.string().min(1, 'El tipo de proyecto es requerido'),
+  project_description: z.string().min(1, 'La descripción del proyecto es requerida'),
+  features: z.array(z.string()).default([]),
+  timeline: z.string().min(1, 'El timeline es requerido'),
+  budget: z.string().min(1, 'El presupuesto es requerido'),
+  main_goals: z.string().min(1, 'Los objetivos principales son requeridos'),
+  target_audience: z.string().min(1, 'El público objetivo es requerido'),
+  existing_website: z.string().optional(),
+  competitor_websites: z.string().optional(),
+  design_preferences: z.string().optional(),
+  additional_notes: z.string().optional(),
+});
+
+// Tipo derivado del schema
+export type BriefFormData = z.infer<typeof briefFormSchema>;
 
 interface FormData {
   companyName: string;

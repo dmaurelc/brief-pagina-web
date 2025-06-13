@@ -1,4 +1,3 @@
-
 import { useAuth } from '@/hooks/useAuth';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -13,8 +12,11 @@ import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { useState } from 'react';
 import { toast } from 'sonner';
+import type { Database } from '@/integrations/supabase/types';
 
-const statusLabels = {
+type BriefStatus = Database['public']['Enums']['brief_status'];
+
+const statusLabels: Record<BriefStatus, string> = {
   pending: 'Pendiente',
   in_review: 'En Revisión',
   quote_sent: 'Presupuesto Enviado',
@@ -22,7 +24,7 @@ const statusLabels = {
   cancelled: 'Cancelado'
 };
 
-const statusColors = {
+const statusColors: Record<BriefStatus, string> = {
   pending: 'bg-yellow-100 text-yellow-800',
   in_review: 'bg-blue-100 text-blue-800',
   quote_sent: 'bg-purple-100 text-purple-800',
@@ -34,7 +36,10 @@ const AdminDashboard = () => {
   const { isAdmin, isLoaded, isLoadingRole } = useAuth();
   const queryClient = useQueryClient();
   const [editingBrief, setEditingBrief] = useState<string | null>(null);
-  const [editForm, setEditForm] = useState({ status: '', admin_notes: '' });
+  const [editForm, setEditForm] = useState<{ status: BriefStatus; admin_notes: string }>({ 
+    status: 'pending', 
+    admin_notes: '' 
+  });
 
   // Obtener todos los briefs
   const { data: briefs, isLoading } = useQuery({
@@ -79,7 +84,7 @@ const AdminDashboard = () => {
   const handleEdit = (brief: any) => {
     setEditingBrief(brief.id);
     setEditForm({
-      status: brief.status,
+      status: brief.status as BriefStatus,
       admin_notes: brief.admin_notes || ''
     });
   };
@@ -96,7 +101,7 @@ const AdminDashboard = () => {
 
   const handleCancel = () => {
     setEditingBrief(null);
-    setEditForm({ status: '', admin_notes: '' });
+    setEditForm({ status: 'pending', admin_notes: '' });
   };
 
   // Redirigir si no es admin
