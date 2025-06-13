@@ -1,547 +1,23 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation } from '@tanstack/react-query';
 import { useUser } from '@clerk/clerk-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
-import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Checkbox } from '@/components/ui/checkbox';
+import { Form } from '@/components/ui/form';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
-import { briefFormSchema, type BriefFormData } from '@/utils/formValidation';
+import { briefFormSchema, type BriefFormData, validateStep, saveDraft, loadDraft, clearDraft } from '@/utils/formValidation';
 import type { Database } from '@/integrations/supabase/types';
+import CompanyInfoStep from '@/components/brief-form/CompanyInfoStep';
+import ProjectInfoStep from '@/components/brief-form/ProjectInfoStep';
+import BudgetAndGoalsStep from '@/components/brief-form/BudgetAndGoalsStep';
+import TechInfoStep from '@/components/brief-form/TechInfoStep';
+import SummaryStep from '@/components/brief-form/SummaryStep';
 
 type BriefInsert = Database['public']['Tables']['briefs']['Insert'];
-
-interface StepProps {
-  form: any;
-}
-
-const CompanyInfoStep: React.FC<StepProps> = ({ form }) => (
-  <div className="grid gap-4">
-    <FormField
-      control={form.control}
-      name="company_name"
-      render={({ field }) => (
-        <FormItem>
-          <FormLabel>Nombre de la empresa</FormLabel>
-          <FormControl>
-            <Input placeholder="DMaurel" {...field} />
-          </FormControl>
-          <FormDescription>
-            ¿Cuál es el nombre de tu empresa?
-          </FormDescription>
-          <FormMessage />
-        </FormItem>
-      )}
-    />
-    <FormField
-      control={form.control}
-      name="contact_name"
-      render={({ field }) => (
-        <FormItem>
-          <FormLabel>Nombre de contacto</FormLabel>
-          <FormControl>
-            <Input placeholder="Daniel Maurel" {...field} />
-          </FormControl>
-          <FormDescription>
-            ¿A quién debemos contactar?
-          </FormDescription>
-          <FormMessage />
-        </FormItem>
-      )}
-    />
-    <FormField
-      control={form.control}
-      name="email"
-      render={({ field }) => (
-        <FormItem>
-          <FormLabel>Email</FormLabel>
-          <FormControl>
-            <Input type="email" placeholder="hola@dmaurel.com" {...field} />
-          </FormControl>
-          <FormDescription>
-            ¿Cuál es tu dirección de correo electrónico?
-          </FormDescription>
-          <FormMessage />
-        </FormItem>
-      )}
-    />
-    <FormField
-      control={form.control}
-      name="phone"
-      render={({ field }) => (
-        <FormItem>
-          <FormLabel>Teléfono (opcional)</FormLabel>
-          <FormControl>
-            <Input placeholder="+54 9 11 1234-5678" {...field} />
-          </FormControl>
-          <FormDescription>
-            ¿Cuál es tu número de teléfono?
-          </FormDescription>
-          <FormMessage />
-        </FormItem>
-      )}
-    />
-    <FormField
-      control={form.control}
-      name="industry"
-      render={({ field }) => (
-        <FormItem>
-          <FormLabel>Industria</FormLabel>
-          <FormControl>
-            <Input placeholder="Tecnología" {...field} />
-          </FormControl>
-          <FormDescription>
-            ¿A qué industria pertenece tu empresa?
-          </FormDescription>
-          <FormMessage />
-        </FormItem>
-      )}
-    />
-  </div>
-);
-
-const ProjectInfoStep: React.FC<StepProps> = ({ form }) => (
-  <div className="grid gap-4">
-    <FormField
-      control={form.control}
-      name="project_type"
-      render={({ field }) => (
-        <FormItem>
-          <FormLabel>Tipo de proyecto</FormLabel>
-          <FormControl>
-            <Select onValueChange={field.onChange} defaultValue={field.value}>
-              <SelectTrigger>
-                <SelectValue placeholder="Selecciona un tipo" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="nuevo">Sitio web nuevo</SelectItem>
-                <SelectItem value="rediseño">Rediseño de sitio web existente</SelectItem>
-                <SelectItem value="e-commerce">Tienda online (E-commerce)</SelectItem>
-                <SelectItem value="landing-page">Landing Page</SelectItem>
-                <SelectItem value="otro">Otro</SelectItem>
-              </SelectContent>
-            </Select>
-          </FormControl>
-          <FormDescription>
-            ¿Qué tipo de proyecto necesitas?
-          </FormDescription>
-          <FormMessage />
-        </FormItem>
-      )}
-    />
-    <FormField
-      control={form.control}
-      name="project_description"
-      render={({ field }) => (
-        <FormItem>
-          <FormLabel>Descripción del proyecto</FormLabel>
-          <FormControl>
-            <Textarea
-              placeholder="Necesitamos un sitio web para..."
-              className="resize-none"
-              {...field}
-            />
-          </FormControl>
-          <FormDescription>
-            Describe brevemente tu proyecto.
-          </FormDescription>
-          <FormMessage />
-        </FormItem>
-      )}
-    />
-    <FormField
-      control={form.control}
-      name="pages"
-      render={({ field }) => (
-        <FormItem className="flex flex-col space-y-1.5">
-          <FormLabel>Páginas requeridas</FormLabel>
-          <div className="space-y-1">
-            <div className="flex items-center space-x-2">
-              <Checkbox
-                checked={field.value?.includes("inicio")}
-                onCheckedChange={(checked) => {
-                  if (checked) {
-                    field.onChange([...field.value || [], "inicio"])
-                  } else {
-                    field.onChange(field.value?.filter((value) => value !== "inicio"))
-                  }
-                }}
-              />
-              <label className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
-                Inicio
-              </label>
-            </div>
-            <div className="flex items-center space-x-2">
-              <Checkbox
-                checked={field.value?.includes("nosotros")}
-                onCheckedChange={(checked) => {
-                  if (checked) {
-                    field.onChange([...field.value || [], "nosotros"])
-                  } else {
-                    field.onChange(field.value?.filter((value) => value !== "nosotros"))
-                  }
-                }}
-              />
-              <label className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
-                Nosotros / Acerca de
-              </label>
-            </div>
-            <div className="flex items-center space-x-2">
-              <Checkbox
-                checked={field.value?.includes("servicios")}
-                onCheckedChange={(checked) => {
-                  if (checked) {
-                    field.onChange([...field.value || [], "servicios"])
-                  } else {
-                    field.onChange(field.value?.filter((value) => value !== "servicios"))
-                  }
-                }}
-              />
-              <label className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
-                Servicios / Productos
-              </label>
-            </div>
-            <div className="flex items-center space-x-2">
-              <Checkbox
-                checked={field.value?.includes("portafolio")}
-                onCheckedChange={(checked) => {
-                  if (checked) {
-                    field.onChange([...field.value || [], "portafolio"])
-                  } else {
-                    field.onChange(field.value?.filter((value) => value !== "portafolio"))
-                  }
-                }}
-              />
-              <label className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
-                Portafolio / Proyectos
-              </label>
-            </div>
-            <div className="flex items-center space-x-2">
-              <Checkbox
-                checked={field.value?.includes("contacto")}
-                onCheckedChange={(checked) => {
-                  if (checked) {
-                    field.onChange([...field.value || [], "contacto"])
-                  } else {
-                    field.onChange(field.value?.filter((value) => value !== "contacto"))
-                  }
-                }}
-              />
-              <label className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
-                Contacto
-              </label>
-            </div>
-            <div className="flex items-center space-x-2">
-              <Checkbox
-                checked={field.value?.includes("blog")}
-                onCheckedChange={(checked) => {
-                  if (checked) {
-                    field.onChange([...field.value || [], "blog"])
-                  } else {
-                    field.onChange(field.value?.filter((value) => value !== "blog"))
-                  }
-                }}
-              />
-              <label className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
-                Blog / Noticias
-              </label>
-            </div>
-            <div className="flex items-center space-x-2">
-              <Checkbox
-                checked={field.value?.includes("tienda")}
-                onCheckedChange={(checked) => {
-                  if (checked) {
-                    field.onChange([...field.value || [], "tienda"])
-                  } else {
-                    field.onChange(field.value?.filter((value) => value !== "tienda"))
-                  }
-                }}
-              />
-              <label className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
-                Tienda online
-              </label>
-            </div>
-          </div>
-          <FormDescription>
-            ¿Qué páginas necesitas en tu sitio web?
-          </FormDescription>
-          <FormMessage />
-        </FormItem>
-      )}
-    />
-    <FormField
-      control={form.control}
-      name="features"
-      render={({ field }) => (
-        <FormItem className="flex flex-col space-y-1.5">
-          <FormLabel>Funcionalidades deseadas</FormLabel>
-          <div className="space-y-1">
-            <div className="flex items-center space-x-2">
-              <Checkbox
-                checked={field.value?.includes("blog")}
-                onCheckedChange={(checked) => {
-                  if (checked) {
-                    field.onChange([...field.value || [], "blog"])
-                  } else {
-                    field.onChange(field.value?.filter((value) => value !== "blog"))
-                  }
-                }}
-              />
-              <label className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
-                Blog
-              </label>
-            </div>
-            <div className="flex items-center space-x-2">
-              <Checkbox
-                checked={field.value?.includes("galeria")}
-                onCheckedChange={(checked) => {
-                  if (checked) {
-                    field.onChange([...field.value || [], "galeria"])
-                  } else {
-                    field.onChange(field.value?.filter((value) => value !== "galeria"))
-                  }
-                }}
-              />
-              <label className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
-                Galería de imágenes
-              </label>
-            </div>
-            <div className="flex items-center space-x-2">
-              <Checkbox
-                checked={field.value?.includes("tienda")}
-                onCheckedChange={(checked) => {
-                  if (checked) {
-                    field.onChange([...field.value || [], "tienda"])
-                  } else {
-                    field.onChange(field.value?.filter((value) => value !== "tienda"))
-                  }
-                }}
-              />
-              <label className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
-                Tienda online
-              </label>
-            </div>
-            <div className="flex items-center space-x-2">
-              <Checkbox
-                checked={field.value?.includes("reservas")}
-                onCheckedChange={(checked) => {
-                  if (checked) {
-                    field.onChange([...field.value || [], "reservas"])
-                  } else {
-                    field.onChange(field.value?.filter((value) => value !== "reservas"))
-                  }
-                }}
-              />
-              <label className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
-                Sistema de reservas
-              </label>
-            </div>
-            <div className="flex items-center space-x-2">
-              <Checkbox
-                checked={field.value?.includes("login")}
-                onCheckedChange={(checked) => {
-                  if (checked) {
-                    field.onChange([...field.value || [], "login"])
-                  } else {
-                    field.onChange(field.value?.filter((value) => value !== "login"))
-                  }
-                }}
-              />
-              <label className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
-                Login de usuarios
-              </label>
-            </div>
-          </div>
-          <FormDescription>
-            ¿Qué funcionalidades deseas incluir en tu sitio web?
-          </FormDescription>
-          <FormMessage />
-        </FormItem>
-      )}
-    />
-    <FormField
-      control={form.control}
-      name="timeline"
-      render={({ field }) => (
-        <FormItem>
-          <FormLabel>Plazos</FormLabel>
-          <FormControl>
-            <Select onValueChange={field.onChange} defaultValue={field.value}>
-              <SelectTrigger>
-                <SelectValue placeholder="Selecciona un plazo" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="urgente">Urgente (1-2 semanas)</SelectItem>
-                <SelectItem value="moderado">Moderado (2-4 semanas)</SelectItem>
-                <SelectItem value="flexible">Flexible (1-2 meses)</SelectItem>
-                <SelectItem value="sin-prisa">Sin prisa (+2 meses)</SelectItem>
-              </SelectContent>
-            </Select>
-          </FormControl>
-          <FormDescription>
-            ¿Cuándo te gustaría tener el proyecto terminado?
-          </FormDescription>
-          <FormMessage />
-        </FormItem>
-      )}
-    />
-  </div>
-);
-
-const BudgetAndGoalsStep: React.FC<StepProps> = ({ form }) => (
-  <div className="grid gap-4">
-    <FormField
-      control={form.control}
-      name="budget"
-      render={({ field }) => (
-        <FormItem>
-          <FormLabel>Presupuesto estimado</FormLabel>
-          <FormControl>
-            <Select onValueChange={field.onChange} defaultValue={field.value}>
-              <SelectTrigger>
-                <SelectValue placeholder="Selecciona un presupuesto" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="bajo">Bajo (menos de $500 USD)</SelectItem>
-                <SelectItem value="medio">Medio ($500 - $2000 USD)</SelectItem>
-                <SelectItem value="alto">Alto ($2000 - $5000 USD)</SelectItem>
-                <SelectItem value="muy-alto">Muy alto (más de $5000 USD)</SelectItem>
-              </SelectContent>
-            </Select>
-          </FormControl>
-          <FormDescription>
-            ¿Cuál es tu presupuesto estimado para este proyecto?
-          </FormDescription>
-          <FormMessage />
-        </FormItem>
-      )}
-    />
-    <FormField
-      control={form.control}
-      name="main_goals"
-      render={({ field }) => (
-        <FormItem>
-          <FormLabel>Objetivos principales</FormLabel>
-          <FormControl>
-            <Textarea
-              placeholder="El objetivo principal es..."
-              className="resize-none"
-              {...field}
-            />
-          </FormControl>
-          <FormDescription>
-            ¿Cuáles son los objetivos principales de este proyecto?
-          </FormDescription>
-          <FormMessage />
-        </FormItem>
-      )}
-    />
-    <FormField
-      control={form.control}
-      name="target_audience"
-      render={({ field }) => (
-        <FormItem>
-          <FormLabel>Público objetivo</FormLabel>
-          <FormControl>
-            <Textarea
-              placeholder="Nuestro público objetivo es..."
-              className="resize-none"
-              {...field}
-            />
-          </FormControl>
-          <FormDescription>
-            ¿A quién está dirigido este proyecto?
-          </FormDescription>
-          <FormMessage />
-        </FormItem>
-      )}
-    />
-  </div>
-);
-
-const TechInfoStep: React.FC<StepProps> = ({ form }) => (
-  <div className="grid gap-4">
-    <FormField
-      control={form.control}
-      name="existing_website"
-      render={({ field }) => (
-        <FormItem>
-          <FormLabel>Sitio web existente (opcional)</FormLabel>
-          <FormControl>
-            <Input placeholder="https://www.ejemplo.com" {...field} />
-          </FormControl>
-          <FormDescription>
-            ¿Tienes un sitio web existente?
-          </FormDescription>
-          <FormMessage />
-        </FormItem>
-      )}
-    />
-    <FormField
-      control={form.control}
-      name="competitor_websites"
-      render={({ field }) => (
-        <FormItem>
-          <FormLabel>Sitios web de la competencia (opcional)</FormLabel>
-          <FormControl>
-            <Input placeholder="https://www.competidor1.com, https://www.competidor2.com" {...field} />
-          </FormControl>
-          <FormDescription>
-            ¿Cuáles son los sitios web de tu competencia?
-          </FormDescription>
-          <FormMessage />
-        </FormItem>
-      )}
-    />
-    <FormField
-      control={form.control}
-      name="design_preferences"
-      render={({ field }) => (
-        <FormItem>
-          <FormLabel>Preferencias de diseño (opcional)</FormLabel>
-          <FormControl>
-            <Textarea
-              placeholder="Nos gustaría un diseño..."
-              className="resize-none"
-              {...field}
-            />
-          </FormControl>
-          <FormDescription>
-            ¿Tienes alguna preferencia de diseño?
-          </FormDescription>
-          <FormMessage />
-        </FormItem>
-      )}
-    />
-    <FormField
-      control={form.control}
-      name="additional_notes"
-      render={({ field }) => (
-        <FormItem>
-          <FormLabel>Notas adicionales (opcional)</FormLabel>
-          <FormControl>
-            <Textarea
-              placeholder="Alguna otra cosa que debamos saber..."
-              className="resize-none"
-              {...field}
-            />
-          </FormControl>
-          <FormDescription>
-            ¿Alguna otra cosa que debamos saber?
-          </FormDescription>
-          <FormMessage />
-        </FormItem>
-      )}
-    />
-  </div>
-);
 
 const BriefForm = () => {
   const { user } = useUser();
@@ -569,6 +45,33 @@ const BriefForm = () => {
       additional_notes: '',
     },
   });
+
+  // Cargar borrador al montar el componente
+  useEffect(() => {
+    const draft = loadDraft();
+    if (draft) {
+      Object.keys(draft).forEach((key) => {
+        const value = draft[key as keyof BriefFormData];
+        if (value !== undefined) {
+          form.setValue(key as keyof BriefFormData, value);
+        }
+      });
+      toast.success('Borrador cargado automáticamente');
+    }
+  }, [form]);
+
+  // Guardado automático con debounce
+  useEffect(() => {
+    const subscription = form.watch((data) => {
+      const timeoutId = setTimeout(() => {
+        saveDraft(data);
+      }, 1000); // Guardar después de 1 segundo de inactividad
+
+      return () => clearTimeout(timeoutId);
+    });
+
+    return () => subscription.unsubscribe();
+  }, [form]);
 
   const submitBrief = useMutation({
     mutationFn: async (data: BriefFormData) => {
@@ -606,6 +109,7 @@ const BriefForm = () => {
     },
     onSuccess: () => {
       toast.success('¡Brief enviado correctamente! Te contactaremos pronto.');
+      clearDraft();
       form.reset();
       setCurrentStep(0);
     },
@@ -632,9 +136,29 @@ const BriefForm = () => {
       title: 'Información técnica',
       content: <TechInfoStep form={form} />,
     },
+    {
+      title: 'Resumen',
+      content: <SummaryStep formData={form.getValues()} onEdit={setCurrentStep} />,
+    },
   ];
 
   const nextStep = () => {
+    const currentData = form.getValues();
+    const validation = validateStep(currentStep + 1, currentData);
+    
+    if (!validation.success) {
+      // Establecer errores en el formulario
+      Object.keys(validation.errors).forEach((field) => {
+        form.setError(field as keyof BriefFormData, {
+          type: 'manual',
+          message: validation.errors[field],
+        });
+      });
+      
+      toast.error('Por favor, completa todos los campos requeridos antes de continuar.');
+      return;
+    }
+    
     setCurrentStep((prev) => Math.min(prev + 1, steps.length - 1));
   };
 
@@ -652,7 +176,10 @@ const BriefForm = () => {
       <CardHeader>
         <CardTitle>{steps[currentStep].title}</CardTitle>
         <CardDescription>
-          Completa los campos para avanzar al siguiente paso.
+          {currentStep < steps.length - 1 
+            ? 'Completa los campos para avanzar al siguiente paso.'
+            : 'Revisa tu información y envía tu solicitud.'
+          }
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-2">
@@ -672,7 +199,7 @@ const BriefForm = () => {
                 </Button>
               ) : (
                 <Button type="submit" disabled={submitBrief.isPending}>
-                  Enviar Brief
+                  {submitBrief.isPending ? 'Enviando...' : 'Enviar Brief'}
                 </Button>
               )}
             </div>

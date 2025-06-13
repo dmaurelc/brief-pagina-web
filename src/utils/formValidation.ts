@@ -26,213 +26,115 @@ export const briefFormSchema = z.object({
 // Tipo derivado del schema
 export type BriefFormData = z.infer<typeof briefFormSchema>;
 
-interface FormData {
-  companyName: string;
-  contactName: string;
-  email: string;
-  phone: string;
-  industry: string;
-  projectType: string;
-  projectDescription: string;
-  pages: string[];
-  features: string[];
-  timeline: string;
-  budget: string;
-  mainGoals: string;
-  targetAudience: string;
-  existingWebsite: string;
-  competitorWebsites: string;
-  designPreferences: string;
-  additionalNotes: string;
-}
+// Schemas para validación por paso
+export const step1Schema = briefFormSchema.pick({
+  company_name: true,
+  contact_name: true,
+  email: true,
+  phone: true,
+  industry: true,
+});
 
-interface ValidationResult {
-  isValid: boolean;
-  missingFields: string[];
-  errorMessage?: string;
-}
+export const step2Schema = briefFormSchema.pick({
+  project_type: true,
+  project_description: true,
+  pages: true,
+  features: true,
+  timeline: true,
+});
 
-// Define required fields for each step with updated requirements
-export const getRequiredFieldsByStep = (step: number): (keyof FormData)[] => {
-  switch (step) {
-    case 1:
-      return ['companyName', 'contactName', 'email', 'phone', 'industry'];
-    case 2:
-      return ['projectType', 'projectDescription', 'pages', 'timeline'];
-    case 3:
-      return ['budget', 'mainGoals', 'targetAudience'];
-    case 4:
-      return ['existingWebsite', 'competitorWebsites', 'designPreferences', 'additionalNotes'];
-    case 5:
-      return []; // Step 5 is just review
-    default:
-      return [];
+export const step3Schema = briefFormSchema.pick({
+  budget: true,
+  main_goals: true,
+  target_audience: true,
+});
+
+export const step4Schema = briefFormSchema.pick({
+  existing_website: true,
+  competitor_websites: true,
+  design_preferences: true,
+  additional_notes: true,
+});
+
+// Función para validar un paso específico
+export const validateStep = (step: number, data: BriefFormData) => {
+  try {
+    switch (step) {
+      case 1:
+        step1Schema.parse(data);
+        return { success: true, errors: {} };
+      case 2:
+        step2Schema.parse(data);
+        return { success: true, errors: {} };
+      case 3:
+        step3Schema.parse(data);
+        return { success: true, errors: {} };
+      case 4:
+        step4Schema.parse(data);
+        return { success: true, errors: {} };
+      default:
+        return { success: true, errors: {} };
+    }
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      const errors: Record<string, string> = {};
+      error.errors.forEach((err) => {
+        if (err.path[0]) {
+          errors[err.path[0] as string] = err.message;
+        }
+      });
+      return { success: false, errors };
+    }
+    return { success: false, errors: {} };
   }
 };
 
-// Field labels for user-friendly error messages
-export const fieldLabels: Record<keyof FormData, string> = {
-  companyName: 'Nombre de la empresa',
-  contactName: 'Nombre de contacto',
+// Funciones de guardado automático
+const STORAGE_KEY = 'brief_form_draft';
+
+export const saveDraft = (data: Partial<BriefFormData>) => {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+  } catch (error) {
+    console.error('Error guardando borrador:', error);
+  }
+};
+
+export const loadDraft = (): Partial<BriefFormData> | null => {
+  try {
+    const saved = localStorage.getItem(STORAGE_KEY);
+    return saved ? JSON.parse(saved) : null;
+  } catch (error) {
+    console.error('Error cargando borrador:', error);
+    return null;
+  }
+};
+
+export const clearDraft = () => {
+  try {
+    localStorage.removeItem(STORAGE_KEY);
+  } catch (error) {
+    console.error('Error eliminando borrador:', error);
+  }
+};
+
+// Field labels para mostrar en el resumen
+export const fieldLabels: Record<keyof BriefFormData, string> = {
+  company_name: 'Nombre de la empresa',
+  contact_name: 'Nombre de contacto',
   email: 'Email',
   phone: 'Teléfono',
   industry: 'Industria/Sector',
-  projectType: 'Tipo de proyecto',
-  projectDescription: 'Descripción del proyecto',
+  project_type: 'Tipo de proyecto',
+  project_description: 'Descripción del proyecto',
   pages: 'Páginas requeridas',
-  features: 'Funcionalidades requeridas',
+  features: 'Funcionalidades deseadas',
   timeline: 'Timeline esperado',
-  budget: 'Presupuesto disponible',
-  mainGoals: 'Objetivos principales',
-  targetAudience: 'Público objetivo',
-  existingWebsite: 'Sitio web actual',
-  competitorWebsites: 'Sitios web de competencia',
-  designPreferences: 'Preferencias de diseño',
-  additionalNotes: 'Notas adicionales'
-};
-
-// Validate email format
-export const isValidEmail = (email: string): boolean => {
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  return emailRegex.test(email);
-};
-
-// Validate current step with improved array validation
-export const validateCurrentStep = (formData: FormData, currentStep: number): ValidationResult => {
-  const requiredFields = getRequiredFieldsByStep(currentStep);
-  const missingFields: string[] = [];
-
-  // Check for empty required fields
-  requiredFields.forEach(field => {
-    const value = formData[field];
-    
-    // Special validation for pages only (features are now optional)
-    if (field === 'pages') {
-      if (!Array.isArray(value) || value.length < 4) {
-        missingFields.push('Páginas requeridas (mínimo 4)');
-      }
-    } else {
-      // Regular field validation
-      if (!value || (typeof value === 'string' && value.trim() === '')) {
-        missingFields.push(fieldLabels[field]);
-      }
-    }
-  });
-
-  // Special validation for email format (only if email is filled)
-  if (currentStep === 1 && formData.email && !isValidEmail(formData.email)) {
-    return {
-      isValid: false,
-      missingFields: [],
-      errorMessage: 'Por favor, ingresa una dirección de email válida.'
-    };
-  }
-
-  if (missingFields.length > 0) {
-    const errorMessage = `Los siguientes campos son obligatorios: ${missingFields.join(', ')}`;
-    
-    toast({
-      title: "Campos requeridos",
-      description: errorMessage,
-      variant: "destructive"
-    });
-
-    return {
-      isValid: false,
-      missingFields,
-      errorMessage
-    };
-  }
-
-  return {
-    isValid: true,
-    missingFields: []
-  };
-};
-
-// Validate all required fields before submission
-export const validateAllRequiredFields = (formData: FormData): ValidationResult => {
-  const allRequiredFields: (keyof FormData)[] = [
-    ...getRequiredFieldsByStep(1),
-    ...getRequiredFieldsByStep(2),
-    ...getRequiredFieldsByStep(3),
-    ...getRequiredFieldsByStep(4)
-  ];
-
-  const missingFields: string[] = [];
-
-  allRequiredFields.forEach(field => {
-    const value = formData[field];
-    
-    // Special validation for pages only (features are now optional)
-    if (field === 'pages') {
-      if (!Array.isArray(value) || value.length < 4) {
-        missingFields.push('Páginas requeridas (mínimo 4)');
-      }
-    } else {
-      // Regular field validation
-      if (!value || (typeof value === 'string' && value.trim() === '')) {
-        missingFields.push(fieldLabels[field]);
-      }
-    }
-  });
-
-  // Email format validation
-  if (formData.email && !isValidEmail(formData.email)) {
-    return {
-      isValid: false,
-      missingFields: [],
-      errorMessage: 'Por favor, ingresa una dirección de email válida.'
-    };
-  }
-
-  if (missingFields.length > 0) {
-    const errorMessage = `Para enviar el brief, debes completar todos los campos obligatorios: ${missingFields.join(', ')}`;
-    
-    toast({
-      title: "Brief incompleto",
-      description: errorMessage,
-      variant: "destructive"
-    });
-
-    return {
-      isValid: false,
-      missingFields,
-      errorMessage
-    };
-  }
-
-  return {
-    isValid: true,
-    missingFields: []
-  };
-};
-
-// Get the first step with missing required fields
-export const getFirstIncompleteStep = (formData: FormData): number => {
-  for (let step = 1; step <= 4; step++) {
-    const validation = validateCurrentStep(formData, step);
-    if (!validation.isValid) {
-      return step;
-    }
-  }
-  return 1; // Default to first step if all are complete
-};
-
-// Check if a specific field has an error - improved for arrays
-export const hasFieldError = (formData: FormData, fieldName: keyof FormData, currentStep: number): boolean => {
-  const requiredFields = getRequiredFieldsByStep(currentStep);
-  if (!requiredFields.includes(fieldName)) {
-    return false;
-  }
-
-  const value = formData[fieldName];
-  
-  // Special validation for pages only (features are now optional)
-  if (fieldName === 'pages') {
-    return !Array.isArray(value) || value.length < 4;
-  }
-  
-  // Regular field validation
-  return !value || (typeof value === 'string' && value.trim() === '');
+  budget: 'Presupuesto estimado',
+  main_goals: 'Objetivos principales',
+  target_audience: 'Público objetivo',
+  existing_website: 'Sitio web existente',
+  competitor_websites: 'Sitios web de competencia',
+  design_preferences: 'Preferencias de diseño',
+  additional_notes: 'Notas adicionales'
 };
