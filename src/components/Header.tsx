@@ -34,11 +34,18 @@ const Header = () => {
             </div>
             
             <SignedOut>
-              <SignInButton mode="modal">
-                <Button variant="outline" size="sm">
-                  Iniciar Sesión
-                </Button>
-              </SignInButton>
+              <div className="flex gap-3">
+                <SignInButton mode="modal">
+                  <Button variant="outline" size="sm">
+                    Iniciar Sesión
+                  </Button>
+                </SignInButton>
+                <SignInButton mode="modal">
+                  <Button size="sm">
+                    Comenzar Ahora
+                  </Button>
+                </SignInButton>
+              </div>
             </SignedOut>
             
             <SignedIn>
