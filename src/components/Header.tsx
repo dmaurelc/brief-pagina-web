@@ -48,7 +48,7 @@ const Header = () => {
                   <DropdownMenuTrigger asChild>
                     <Button variant="outline" size="sm">
                       <User className="w-4 h-4 mr-2" />
-                      Mi Cuenta
+                      Menú
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end" className="w-48">
@@ -56,12 +56,16 @@ const Header = () => {
                       <User className="w-4 h-4 mr-2" />
                       Mi Cuenta
                     </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => navigate('/brief')}>
+                      <User className="w-4 h-4 mr-2" />
+                      Nuevo Presupuesto
+                    </DropdownMenuItem>
                     {isAdmin && (
                       <>
                         <DropdownMenuSeparator />
                         <DropdownMenuItem onClick={() => navigate('/admin')}>
                           <Shield className="w-4 h-4 mr-2" />
-                          Panel Admin
+                          Dashboard Admin
                         </DropdownMenuItem>
                       </>
                     )}
