@@ -223,6 +223,13 @@ const AdminDashboard = () => {
     })
   );
 
+  // Función para cerrar sesión
+  const handleSignOut = () => {
+    signOut(() => {
+      navigate('/');
+    });
+  };
+
   // Verificar si el usuario es administrador
   useEffect(() => {
     const checkAdminRole = async () => {

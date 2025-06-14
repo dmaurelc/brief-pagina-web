@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { useUser } from '@clerk/clerk-react';
 import { supabase } from '@/integrations/supabase/client';
@@ -25,6 +26,7 @@ const BriefForm = () => {
     contact_name: '',
     contact_email: '',
     contact_phone: '',
+    industry: '',
     project_type: '',
     budget: '',
     timeline: '',
@@ -77,19 +79,37 @@ const BriefForm = () => {
     'Analytics/Estadísticas'
   ];
 
+  const industryOptions = [
+    'Tecnología',
+    'Salud',
+    'Educación',
+    'Finanzas',
+    'Retail/Comercio',
+    'Inmobiliario',
+    'Turismo',
+    'Restauración',
+    'Consultoría',
+    'Manufactura',
+    'Servicios profesionales',
+    'Arte y entretenimiento',
+    'Otro'
+  ];
+
   const validateStep = (step: number): boolean => {
     switch (step) {
       case 1:
         return formData.company_name.trim() !== '' && 
                formData.contact_name.trim() !== '' && 
-               formData.contact_email.trim() !== '';
+               formData.contact_email.trim() !== '' &&
+               formData.industry !== '';
       case 2:
         return formData.project_type !== '' && 
                formData.budget !== '' && 
                formData.timeline !== '';
       case 3:
         return formData.description.trim() !== '' && 
-               formData.objectives.trim() !== '';
+               formData.objectives.trim() !== '' &&
+               formData.target_audience.trim() !== '';
       case 4:
         return formData.pages.length > 0;
       case 5:
@@ -154,26 +174,25 @@ const BriefForm = () => {
       console.log('📝 Datos del formulario:', formData);
       console.log('👤 Usuario:', user.emailAddresses[0].emailAddress);
 
-      // Preparar los datos con validación adicional
+      // Mapear los datos del formulario a la estructura de la tabla briefs
       const briefData = {
         user_id: user.emailAddresses[0].emailAddress,
         company_name: formData.company_name.trim(),
         contact_name: formData.contact_name.trim(),
-        contact_email: formData.contact_email.trim(),
-        contact_phone: formData.contact_phone.trim() || null,
+        email: formData.contact_email.trim(), // Mapear contact_email a email
+        phone: formData.contact_phone.trim() || null,
+        industry: formData.industry, // Campo requerido
         project_type: formData.project_type,
         budget: formData.budget,
         timeline: formData.timeline,
-        description: formData.description.trim(),
-        objectives: formData.objectives.trim(),
-        target_audience: formData.target_audience.trim() || null,
-        competitors: formData.competitors.trim() || null,
-        pages: formData.pages.length > 0 ? formData.pages : [],
-        features: formData.features.length > 0 ? formData.features : [],
+        project_description: formData.description.trim(), // Mapear description a project_description
+        main_goals: formData.objectives.trim(), // Mapear objectives a main_goals
+        target_audience: formData.target_audience.trim(),
+        competitor_websites: formData.competitors.trim() || null,
+        pages: formData.pages.length > 0 ? formData.pages : null,
+        features: formData.features.length > 0 ? formData.features : null,
         design_preferences: formData.design_preferences.trim() || null,
-        content_ready: formData.content_ready || null,
-        hosting_domain: formData.hosting_domain.trim() || null,
-        additional_comments: formData.additional_comments.trim() || null,
+        additional_notes: formData.additional_comments.trim() || null,
         status: 'pending'
       };
 
@@ -182,7 +201,7 @@ const BriefForm = () => {
       // Insertar en la base de datos
       const { data, error } = await supabase
         .from('briefs')
-        .insert([briefData])
+        .insert(briefData)
         .select()
         .single();
 
@@ -287,6 +306,21 @@ const BriefForm = () => {
                   onChange={(e) => handleInputChange('contact_phone', e.target.value)}
                   placeholder="+56 9 1234 5678"
                 />
+              </div>
+              <div>
+                <Label>Industria o sector *</Label>
+                <RadioGroup
+                  value={formData.industry}
+                  onValueChange={(value) => handleInputChange('industry', value)}
+                  className="mt-2"
+                >
+                  {industryOptions.map((industry) => (
+                    <div key={industry} className="flex items-center space-x-2">
+                      <RadioGroupItem value={industry} id={industry} />
+                      <Label htmlFor={industry}>{industry}</Label>
+                    </div>
+                  ))}
+                </RadioGroup>
               </div>
             </div>
           </div>
@@ -417,13 +451,14 @@ const BriefForm = () => {
               />
             </div>
             <div>
-              <Label htmlFor="target_audience">Público objetivo</Label>
+              <Label htmlFor="target_audience">Público objetivo *</Label>
               <Textarea
                 id="target_audience"
                 value={formData.target_audience}
                 onChange={(e) => handleInputChange('target_audience', e.target.value)}
                 placeholder="Describe a quién está dirigido tu sitio web (edad, intereses, ubicación, etc.)"
                 className="min-h-[80px]"
+                required
               />
             </div>
             <div>
