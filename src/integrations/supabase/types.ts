@@ -29,6 +29,7 @@ export type Database = {
           phone: string | null
           project_description: string
           project_type: string
+          proposal_id: string | null
           status: Database["public"]["Enums"]["brief_status"] | null
           status_updated_at: string | null
           target_audience: string
@@ -55,6 +56,7 @@ export type Database = {
           phone?: string | null
           project_description: string
           project_type: string
+          proposal_id?: string | null
           status?: Database["public"]["Enums"]["brief_status"] | null
           status_updated_at?: string | null
           target_audience: string
@@ -81,6 +83,7 @@ export type Database = {
           phone?: string | null
           project_description?: string
           project_type?: string
+          proposal_id?: string | null
           status?: Database["public"]["Enums"]["brief_status"] | null
           status_updated_at?: string | null
           target_audience?: string
@@ -88,7 +91,56 @@ export type Database = {
           updated_at?: string
           user_id?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "briefs_proposal_id_fkey"
+            columns: ["proposal_id"]
+            isOneToOne: false
+            referencedRelation: "proposals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      proposals: {
+        Row: {
+          admin_notes: string | null
+          brief_id: string
+          email_sent_at: string | null
+          file_name: string
+          file_path: string
+          id: string
+          uploaded_at: string
+          uploaded_by: string
+        }
+        Insert: {
+          admin_notes?: string | null
+          brief_id: string
+          email_sent_at?: string | null
+          file_name: string
+          file_path: string
+          id?: string
+          uploaded_at?: string
+          uploaded_by: string
+        }
+        Update: {
+          admin_notes?: string | null
+          brief_id?: string
+          email_sent_at?: string | null
+          file_name?: string
+          file_path?: string
+          id?: string
+          uploaded_at?: string
+          uploaded_by?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "proposals_brief_id_fkey"
+            columns: ["brief_id"]
+            isOneToOne: false
+            referencedRelation: "briefs"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       user_roles: {
         Row: {
