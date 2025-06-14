@@ -220,59 +220,103 @@ const AdminDashboard = () => {
     enabled: isAdmin === true,
   });
 
-  // Mutation mejorada para actualizar el estado de un brief
+  // Mutación mejorada con mejor manejo de errores y validación
   const updateBriefStatusMutation = useMutation({
     mutationFn: async ({ briefId, newStatus }: { briefId: string; newStatus: string }) => {
-      console.log('Actualizando brief:', briefId, 'a estado:', newStatus);
+      console.log('=== INICIANDO ACTUALIZACIÓN ===');
+      console.log('Brief ID:', briefId);
+      console.log('Nuevo estado:', newStatus);
       
       // Validar que el nuevo estado sea válido
       const validStatuses = ['pending', 'in_review', 'quote_sent', 'completed', 'cancelled'];
       if (!validStatuses.includes(newStatus)) {
-        throw new Error(`Estado inválido: ${newStatus}`);
+        const errorMsg = `Estado inválido: ${newStatus}. Estados válidos: ${validStatuses.join(', ')}`;
+        console.error(errorMsg);
+        throw new Error(errorMsg);
       }
 
-      // Verificar que el brief existe
+      // Verificar que el brief existe en la data local
       const currentBrief = briefs?.find(b => b.id === briefId);
       if (!currentBrief) {
-        throw new Error(`Brief no encontrado: ${briefId}`);
+        const errorMsg = `Brief no encontrado en data local: ${briefId}`;
+        console.error(errorMsg);
+        throw new Error(errorMsg);
       }
 
-      const { data, error } = await supabase
-        .from('briefs')
-        .update({ 
-          status: newStatus as any,
-          status_updated_at: new Date().toISOString()
-        })
-        .eq('id', briefId)
-        .select()
-        .maybeSingle(); // Cambio de .single() a .maybeSingle()
+      console.log('Brief encontrado:', currentBrief.company_name);
+      console.log('Estado actual:', currentBrief.status);
 
-      if (error) {
-        console.error('Error de Supabase:', error);
-        throw error;
+      // Intentar la actualización con manejo de errores mejorado
+      try {
+        console.log('Ejecutando query de actualización...');
+        
+        const { data, error, count } = await supabase
+          .from('briefs')
+          .update({ 
+            status: newStatus as any,
+            status_updated_at: new Date().toISOString()
+          })
+          .eq('id', briefId)
+          .select('*');
+
+        console.log('Respuesta de Supabase:');
+        console.log('- Data:', data);
+        console.log('- Error:', error);
+        console.log('- Count:', count);
+
+        if (error) {
+          console.error('Error de Supabase detallado:', {
+            message: error.message,
+            details: error.details,
+            hint: error.hint,
+            code: error.code
+          });
+          
+          // Mejorar mensajes de error específicos
+          if (error.code === 'PGRST116') {
+            throw new Error('No se encontró el presupuesto para actualizar. Es posible que haya sido eliminado.');
+          } else if (error.code === '42501') {
+            throw new Error('Sin permisos para actualizar este presupuesto. Contacte al administrador.');
+          } else {
+            throw new Error(`Error de base de datos: ${error.message}`);
+          }
+        }
+
+        if (!data || data.length === 0) {
+          console.error('La actualización no devolvió datos');
+          throw new Error('La actualización se ejecutó pero no se obtuvieron datos. El presupuesto podría no existir.');
+        }
+
+        const updatedBrief = data[0];
+        console.log('Brief actualizado exitosamente:', updatedBrief);
+        return updatedBrief;
+
+      } catch (supabaseError) {
+        console.error('Error en la operación de Supabase:', supabaseError);
+        throw supabaseError;
       }
-
-      if (!data) {
-        console.error('No se encontró el brief para actualizar');
-        throw new Error('No se encontró el brief para actualizar');
-      }
-
-      console.log('Brief actualizado exitosamente:', data);
-      return data;
     },
     onSuccess: (data) => {
-      console.log('Mutación exitosa, invalidando queries...');
+      console.log('=== ACTUALIZACIÓN EXITOSA ===');
+      console.log('Datos actualizados:', data);
+      
+      // Invalidar queries para refrescar la data
       queryClient.invalidateQueries({ queryKey: ['admin-briefs'] });
+      
       toast({
-        title: "Estado actualizado",
-        description: `El estado del brief se ha actualizado a ${data.status}.`,
+        title: "✅ Estado actualizado",
+        description: `El presupuesto de "${data.company_name}" se cambió a "${data.status}".`,
       });
     },
     onError: (error) => {
-      console.error('Error en la mutación:', error);
+      console.error('=== ERROR EN MUTACIÓN ===');
+      console.error('Error completo:', error);
+      
+      const errorMessage = error instanceof Error ? error.message : "Error desconocido al actualizar el presupuesto.";
+      
       toast({
-        title: "Error",
-        description: error instanceof Error ? error.message : "No se pudo actualizar el estado del brief.",
+        title: "❌ Error al actualizar",
+        description: errorMessage,
         variant: "destructive",
       });
     },
@@ -285,16 +329,20 @@ const AdminDashboard = () => {
 
   const handleDragStart = (event: DragStartEvent) => {
     setActiveId(event.active.id as string);
-    console.log('Drag iniciado:', event.active.id);
+    console.log('🎯 Drag iniciado para brief:', event.active.id);
   };
 
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
     
-    console.log('Drag terminado:', { active: active.id, over: over?.id });
+    console.log('🎯 Drag terminado:', { 
+      briefId: active.id, 
+      targetColumn: over?.id,
+      hasValidTarget: !!over 
+    });
     
     if (!over) {
-      console.log('No hay zona de drop válida');
+      console.log('❌ No hay zona de drop válida');
       setActiveId(null);
       return;
     }
@@ -302,23 +350,37 @@ const AdminDashboard = () => {
     const briefId = active.id as string;
     const newStatus = over.id as string;
     
-    // Buscar el brief actual
+    // Buscar el brief actual con validación mejorada
     const currentBrief = briefs?.find(b => b.id === briefId);
     if (!currentBrief) {
-      console.error('Brief no encontrado:', briefId);
+      console.error('❌ Brief no encontrado en handleDragEnd:', briefId);
+      console.error('Briefs disponibles:', briefs?.map(b => ({ id: b.id, company: b.company_name })));
+      
+      toast({
+        title: "Error",
+        description: "No se pudo encontrar el presupuesto seleccionado.",
+        variant: "destructive",
+      });
+      
       setActiveId(null);
       return;
     }
 
     const currentStatus = currentBrief.status || 'pending';
     
-    console.log('Comparando estados:', { currentStatus, newStatus });
+    console.log('📊 Comparando estados:', { 
+      briefId,
+      company: currentBrief.company_name,
+      from: currentStatus, 
+      to: newStatus,
+      shouldUpdate: currentStatus !== newStatus
+    });
     
     if (currentStatus !== newStatus) {
-      console.log('Ejecutando mutación para cambiar estado...');
+      console.log('🚀 Ejecutando mutación para cambiar estado...');
       updateBriefStatusMutation.mutate({ briefId, newStatus });
     } else {
-      console.log('El estado no ha cambiado');
+      console.log('ℹ️ El estado no ha cambiado, no se requiere actualización');
     }
     
     setActiveId(null);
@@ -496,7 +558,7 @@ const AdminDashboard = () => {
           ))}
         </div>
 
-        {/* Kanban Board con Drag and Drop */}
+        {/* Kanban Board con Drag and Drop mejorado */}
         <DndContext
           sensors={sensors}
           onDragStart={handleDragStart}
