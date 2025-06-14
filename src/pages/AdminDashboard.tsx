@@ -220,9 +220,23 @@ const AdminDashboard = () => {
     enabled: isAdmin === true,
   });
 
-  // Mutation para actualizar el estado de un brief
+  // Mutation mejorada para actualizar el estado de un brief
   const updateBriefStatusMutation = useMutation({
     mutationFn: async ({ briefId, newStatus }: { briefId: string; newStatus: string }) => {
+      console.log('Actualizando brief:', briefId, 'a estado:', newStatus);
+      
+      // Validar que el nuevo estado sea válido
+      const validStatuses = ['pending', 'in_review', 'quote_sent', 'completed', 'cancelled'];
+      if (!validStatuses.includes(newStatus)) {
+        throw new Error(`Estado inválido: ${newStatus}`);
+      }
+
+      // Verificar que el brief existe
+      const currentBrief = briefs?.find(b => b.id === briefId);
+      if (!currentBrief) {
+        throw new Error(`Brief no encontrado: ${briefId}`);
+      }
+
       const { data, error } = await supabase
         .from('briefs')
         .update({ 
@@ -231,23 +245,34 @@ const AdminDashboard = () => {
         })
         .eq('id', briefId)
         .select()
-        .single();
+        .maybeSingle(); // Cambio de .single() a .maybeSingle()
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error de Supabase:', error);
+        throw error;
+      }
+
+      if (!data) {
+        console.error('No se encontró el brief para actualizar');
+        throw new Error('No se encontró el brief para actualizar');
+      }
+
+      console.log('Brief actualizado exitosamente:', data);
       return data;
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
+      console.log('Mutación exitosa, invalidando queries...');
       queryClient.invalidateQueries({ queryKey: ['admin-briefs'] });
       toast({
         title: "Estado actualizado",
-        description: "El estado del brief se ha actualizado correctamente.",
+        description: `El estado del brief se ha actualizado a ${data.status}.`,
       });
     },
     onError: (error) => {
-      console.error('Error updating brief status:', error);
+      console.error('Error en la mutación:', error);
       toast({
         title: "Error",
-        description: "No se pudo actualizar el estado del brief.",
+        description: error instanceof Error ? error.message : "No se pudo actualizar el estado del brief.",
         variant: "destructive",
       });
     },
@@ -260,12 +285,16 @@ const AdminDashboard = () => {
 
   const handleDragStart = (event: DragStartEvent) => {
     setActiveId(event.active.id as string);
+    console.log('Drag iniciado:', event.active.id);
   };
 
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
     
+    console.log('Drag terminado:', { active: active.id, over: over?.id });
+    
     if (!over) {
+      console.log('No hay zona de drop válida');
       setActiveId(null);
       return;
     }
@@ -276,14 +305,20 @@ const AdminDashboard = () => {
     // Buscar el brief actual
     const currentBrief = briefs?.find(b => b.id === briefId);
     if (!currentBrief) {
+      console.error('Brief no encontrado:', briefId);
       setActiveId(null);
       return;
     }
 
     const currentStatus = currentBrief.status || 'pending';
     
+    console.log('Comparando estados:', { currentStatus, newStatus });
+    
     if (currentStatus !== newStatus) {
+      console.log('Ejecutando mutación para cambiar estado...');
       updateBriefStatusMutation.mutate({ briefId, newStatus });
+    } else {
+      console.log('El estado no ha cambiado');
     }
     
     setActiveId(null);
