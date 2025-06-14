@@ -114,7 +114,7 @@ const Landing = () => {
         </div>
 
         {/* Features */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-16">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           {[
             {
               icon: <Zap className="w-8 h-8 text-primary" />,
@@ -148,78 +148,7 @@ const Landing = () => {
             </Card>
           ))}
         </div>
-
-        {/* Process */}
-        <div className="bg-card rounded-lg p-8 mb-16">
-          <h2 className="text-3xl font-bold text-center text-foreground mb-8">
-            ¿Cómo funciona?
-          </h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {[
-              {
-                step: "1",
-                title: "Completa el Brief",
-                description: "Cuéntanos sobre tu proyecto, objetivos y requerimientos específicos"
-              },
-              {
-                step: "2",
-                title: "Análisis Profesional",
-                description: "Analizamos tu solicitud y preparamos una propuesta personalizada"
-              },
-              {
-                step: "3",
-                title: "Recibe tu Propuesta",
-                description: "Te enviamos una cotización detallada con cronograma y presupuesto"
-              }
-            ].map((step, index) => (
-              <div key={index} className="text-center">
-                <div className="w-12 h-12 bg-primary text-primary-foreground rounded-full flex items-center justify-center text-xl font-bold mx-auto mb-4">
-                  {step.step}
-                </div>
-                <h3 className="text-xl font-semibold mb-2">{step.title}</h3>
-                <p className="text-muted-foreground">{step.description}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* CTA Final */}
-        <div className="text-center">
-          <h2 className="text-3xl font-bold text-foreground mb-4">
-            ¿Listo para comenzar tu proyecto web?
-          </h2>
-          <p className="text-lg text-muted-foreground mb-8">
-            Miles de empresas ya han confiado en nosotros para sus proyectos digitales
-          </p>
-          
-          <SignedOut>
-            <SignInButton mode="modal">
-              <Button size="lg" className="text-lg px-8 py-3">
-                Solicitar Presupuesto Gratis
-              </Button>
-            </SignInButton>
-          </SignedOut>
-
-          <SignedIn>
-            <Button 
-              size="lg" 
-              className="text-lg px-8 py-3"
-              onClick={() => navigate('/brief')}
-            >
-              Solicitar Presupuesto Gratis
-            </Button>
-          </SignedIn>
-        </div>
       </main>
-
-      {/* Footer */}
-      <footer className="bg-card border-t border-border mt-20">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <div className="text-center text-muted-foreground">
-            <p>&copy; 2025 Brief Página Web - Generador de presupuestos web personalizados por DMaurel.</p>
-          </div>
-        </div>
-      </footer>
     </div>
   );
 };
