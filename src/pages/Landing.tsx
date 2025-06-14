@@ -89,15 +89,6 @@ const Landing = () => {
                   Comenzar Ahora
                 </Button>
               </SignInButton>
-              <SignInButton mode="modal">
-                <Button 
-                  variant="outline" 
-                  size="lg" 
-                  className="text-lg px-8 py-3"
-                >
-                  Comenzar Ahora
-                </Button>
-              </SignInButton>
             </div>
           </SignedOut>
 
