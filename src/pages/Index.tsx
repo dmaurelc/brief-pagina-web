@@ -1,25 +1,9 @@
 
 import { SignedIn, SignedOut, SignInButton, UserButton } from '@clerk/clerk-react';
 import { Button } from '@/components/ui/button';
-import { useAuth } from '@/hooks/useAuth';
 import BriefForm from '@/components/BriefForm';
-import { Link } from 'react-router-dom';
-import { FileText, Settings, User, Crown } from 'lucide-react';
 
 const Index = () => {
-  const { isAdmin, isLoaded, isLoadingRole } = useAuth();
-
-  if (!isLoaded || isLoadingRole) {
-    return (
-      <div className="min-h-screen bg-accent-700 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-          <p className="text-muted-foreground">Cargando...</p>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="min-h-screen bg-accent-700">
       {/* Header */}
@@ -45,29 +29,13 @@ const Index = () => {
                 </SignInButton>
               </SignedOut>
               <SignedIn>
-                <div className="flex items-center space-x-3">
-                  <Link to="/mi-cuenta">
-                    <Button variant="outline" size="sm" className="flex items-center space-x-2">
-                      <User className="w-4 h-4" />
-                      <span>Mi Cuenta</span>
-                    </Button>
-                  </Link>
-                  {isAdmin && (
-                    <Link to="/admin/dashboard">
-                      <Button variant="outline" size="sm" className="flex items-center space-x-2">
-                        <Crown className="w-4 h-4" />
-                        <span>Admin</span>
-                      </Button>
-                    </Link>
-                  )}
-                  <UserButton 
-                    appearance={{
-                      elements: {
-                        avatarBox: "w-8 h-8"
-                      }
-                    }}
-                  />
-                </div>
+                <UserButton 
+                  appearance={{
+                    elements: {
+                      avatarBox: "w-8 h-8"
+                    }
+                  }}
+                />
               </SignedIn>
             </div>
           </div>
@@ -85,30 +53,10 @@ const Index = () => {
           </p>
         </div>
 
-        {/* Authentication Wall */}
-        <SignedOut>
-          <div className="max-w-md mx-auto bg-card rounded-lg p-8 shadow-lg text-center">
-            <FileText className="w-16 h-16 text-primary mx-auto mb-6" />
-            <h2 className="text-2xl font-semibold text-foreground mb-4">
-              Inicia sesión para continuar
-            </h2>
-            <p className="text-muted-foreground mb-6">
-              Para crear tu solicitud de presupuesto, necesitas tener una cuenta. Es rápido y gratuito.
-            </p>
-            <SignInButton mode="modal">
-              <Button className="w-full">
-                Iniciar Sesión / Registrarse
-              </Button>
-            </SignInButton>
-          </div>
-        </SignedOut>
-
-        {/* Form for authenticated users */}
-        <SignedIn>
-          <div className="flex justify-center">
-            <BriefForm />
-          </div>
-        </SignedIn>
+        {/* Form */}
+        <div className="flex justify-center">
+          <BriefForm />
+        </div>
       </main>
 
       {/* Footer */}
