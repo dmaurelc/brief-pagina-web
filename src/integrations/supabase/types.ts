@@ -127,6 +127,13 @@ export type Database = {
         }
         Returns: boolean
       }
+      has_role_by_email: {
+        Args: {
+          _email: string
+          _role: Database["public"]["Enums"]["user_role"]
+        }
+        Returns: boolean
+      }
     }
     Enums: {
       brief_status:

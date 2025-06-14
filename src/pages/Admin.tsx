@@ -6,32 +6,78 @@ import { useQuery } from '@tanstack/react-query';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Eye, ArrowLeft } from 'lucide-react';
+import { Eye, ArrowLeft, Shield, AlertCircle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Tables } from '@/integrations/supabase/types';
 import BriefDetailModal from '@/components/BriefDetailModal';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 
 type Brief = Tables<'briefs'>;
 
 const Admin = () => {
-  const { user } = useUser();
+  const { user, isLoaded } = useUser();
   const navigate = useNavigate();
   const [selectedBrief, setSelectedBrief] = useState<Brief | null>(null);
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
+  const [isAdmin, setIsAdmin] = useState<boolean | null>(null);
+  const [adminCheckLoading, setAdminCheckLoading] = useState(true);
+
+  // Verificar si el usuario es administrador
+  useEffect(() => {
+    const checkAdminRole = async () => {
+      if (!user?.emailAddresses?.[0]?.emailAddress) {
+        setIsAdmin(false);
+        setAdminCheckLoading(false);
+        return;
+      }
+
+      try {
+        const { data, error } = await supabase.rpc('has_role_by_email', {
+          _email: user.emailAddresses[0].emailAddress,
+          _role: 'admin'
+        });
+
+        if (error) {
+          console.error('Error verificando rol de admin:', error);
+          setIsAdmin(false);
+        } else {
+          setIsAdmin(data);
+        }
+      } catch (error) {
+        console.error('Error verificando rol de admin:', error);
+        setIsAdmin(false);
+      } finally {
+        setAdminCheckLoading(false);
+      }
+    };
+
+    if (isLoaded && user) {
+      checkAdminRole();
+    } else if (isLoaded && !user) {
+      setIsAdmin(false);
+      setAdminCheckLoading(false);
+    }
+  }, [user, isLoaded]);
 
   // Fetch all briefs
   const { data: briefs, isLoading, error } = useQuery({
     queryKey: ['admin-briefs'],
     queryFn: async () => {
+      console.log('Fetching briefs...');
       const { data, error } = await supabase
         .from('briefs')
         .select('*')
         .order('created_at', { ascending: false });
       
-      if (error) throw error;
+      if (error) {
+        console.error('Error fetching briefs:', error);
+        throw error;
+      }
+      
+      console.log('Briefs fetched:', data?.length);
       return data;
     },
-    enabled: !!user,
+    enabled: isAdmin === true, // Solo ejecutar si el usuario es admin
   });
 
   const handleViewDetail = (brief: Brief) => {
@@ -66,6 +112,60 @@ const Admin = () => {
     });
   };
 
+  // Mostrar loading mientras se verifica autenticación y roles
+  if (!isLoaded || adminCheckLoading) {
+    return (
+      <div className="min-h-screen bg-accent-700 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Verificando permisos...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Mostrar error si no está autenticado
+  if (!user) {
+    return (
+      <div className="min-h-screen bg-accent-700 flex items-center justify-center">
+        <Card className="max-w-md">
+          <CardContent className="p-6 text-center">
+            <AlertCircle className="w-12 h-12 text-destructive mx-auto mb-4" />
+            <h2 className="text-xl font-semibold mb-2">Acceso Denegado</h2>
+            <p className="text-muted-foreground mb-4">Debes iniciar sesión para acceder al panel de administración.</p>
+            <Button onClick={() => navigate('/auth/sign-in')} className="w-full">
+              Iniciar Sesión
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  // Mostrar error si no es administrador
+  if (isAdmin === false) {
+    return (
+      <div className="min-h-screen bg-accent-700 flex items-center justify-center">
+        <Card className="max-w-md">
+          <CardContent className="p-6 text-center">
+            <Shield className="w-12 h-12 text-destructive mx-auto mb-4" />
+            <h2 className="text-xl font-semibold mb-2">Acceso Denegado</h2>
+            <p className="text-muted-foreground mb-4">
+              No tienes permisos de administrador para acceder a esta página.
+            </p>
+            <div className="text-sm text-muted-foreground mb-4">
+              Usuario: {user.emailAddresses?.[0]?.emailAddress}
+            </div>
+            <Button onClick={() => navigate('/')} variant="outline">
+              <ArrowLeft className="w-4 h-4 mr-2" />
+              Volver al inicio
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
   if (isLoading) {
     return (
       <div className="min-h-screen bg-accent-700 flex items-center justify-center">
@@ -82,7 +182,9 @@ const Admin = () => {
       <div className="min-h-screen bg-accent-700 flex items-center justify-center">
         <Card className="max-w-md">
           <CardContent className="p-6 text-center">
+            <AlertCircle className="w-12 h-12 text-destructive mx-auto mb-4" />
             <p className="text-destructive mb-4">Error al cargar los presupuestos</p>
+            <p className="text-sm text-muted-foreground mb-4">{error.message}</p>
             <Button onClick={() => navigate('/')} variant="outline">
               <ArrowLeft className="w-4 h-4 mr-2" />
               Volver al inicio
@@ -103,6 +205,10 @@ const Admin = () => {
               <p className="text-muted-foreground mt-2">
                 Gestiona todos los presupuestos enviados
               </p>
+              <div className="flex items-center gap-2 mt-2">
+                <Shield className="w-4 h-4 text-green-600" />
+                <span className="text-sm text-green-600">Administrador: {user.emailAddresses?.[0]?.emailAddress}</span>
+              </div>
             </div>
             <Button onClick={() => navigate('/')} variant="outline">
               <ArrowLeft className="w-4 h-4 mr-2" />
@@ -110,6 +216,15 @@ const Admin = () => {
             </Button>
           </div>
         </div>
+
+        {briefs && briefs.length > 0 && (
+          <Alert className="mb-6">
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>
+              Se encontraron {briefs.length} presupuesto(s) en la base de datos. La integración Clerk + Supabase está funcionando correctamente.
+            </AlertDescription>
+          </Alert>
+        )}
 
         <Card>
           <CardHeader>
