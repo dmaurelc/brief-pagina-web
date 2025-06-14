@@ -12,6 +12,7 @@ export type Database = {
       briefs: {
         Row: {
           additional_notes: string | null
+          admin_notes: string | null
           budget: string
           company_name: string
           competitor_websites: string | null
@@ -28,12 +29,16 @@ export type Database = {
           phone: string | null
           project_description: string
           project_type: string
+          status: Database["public"]["Enums"]["brief_status"] | null
+          status_updated_at: string | null
           target_audience: string
           timeline: string
           updated_at: string
+          user_id: string | null
         }
         Insert: {
           additional_notes?: string | null
+          admin_notes?: string | null
           budget: string
           company_name: string
           competitor_websites?: string | null
@@ -50,12 +55,16 @@ export type Database = {
           phone?: string | null
           project_description: string
           project_type: string
+          status?: Database["public"]["Enums"]["brief_status"] | null
+          status_updated_at?: string | null
           target_audience: string
           timeline: string
           updated_at?: string
+          user_id?: string | null
         }
         Update: {
           additional_notes?: string | null
+          admin_notes?: string | null
           budget?: string
           company_name?: string
           competitor_websites?: string | null
@@ -72,9 +81,33 @@ export type Database = {
           phone?: string | null
           project_description?: string
           project_type?: string
+          status?: Database["public"]["Enums"]["brief_status"] | null
+          status_updated_at?: string | null
           target_audience?: string
           timeline?: string
           updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      user_roles: {
+        Row: {
+          created_at: string
+          id: string
+          role: Database["public"]["Enums"]["user_role"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          role?: Database["public"]["Enums"]["user_role"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          role?: Database["public"]["Enums"]["user_role"]
+          user_id?: string
         }
         Relationships: []
       }
@@ -83,10 +116,26 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      create_first_admin: {
+        Args: { _user_id: string }
+        Returns: undefined
+      }
+      has_role: {
+        Args: {
+          _user_id: string
+          _role: Database["public"]["Enums"]["user_role"]
+        }
+        Returns: boolean
+      }
     }
     Enums: {
-      [_ in never]: never
+      brief_status:
+        | "pending"
+        | "in_review"
+        | "quote_sent"
+        | "completed"
+        | "cancelled"
+      user_role: "admin" | "user"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -201,6 +250,15 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      brief_status: [
+        "pending",
+        "in_review",
+        "quote_sent",
+        "completed",
+        "cancelled",
+      ],
+      user_role: ["admin", "user"],
+    },
   },
 } as const

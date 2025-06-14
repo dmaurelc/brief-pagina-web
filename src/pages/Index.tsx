@@ -1,9 +1,35 @@
 
 import { SignedIn, SignedOut, SignInButton, UserButton } from '@clerk/clerk-react';
 import { Button } from '@/components/ui/button';
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
+import { useUser } from '@clerk/clerk-react';
+import { useNavigate } from 'react-router-dom';
+import { Shield } from 'lucide-react';
 import BriefForm from '@/components/BriefForm';
 
 const Index = () => {
+  const { user } = useUser();
+  const navigate = useNavigate();
+
+  // Check if user is admin
+  const { data: isAdmin } = useQuery({
+    queryKey: ['user-role', user?.id],
+    queryFn: async () => {
+      if (!user?.id) return false;
+      
+      const { data, error } = await supabase
+        .from('user_roles')
+        .select('role')
+        .eq('user_id', user.id)
+        .eq('role', 'admin')
+        .single();
+      
+      return !error && data;
+    },
+    enabled: !!user?.id,
+  });
+
   return (
     <div className="min-h-screen bg-accent-700">
       {/* Header */}
@@ -21,6 +47,17 @@ const Index = () => {
               <div className="text-sm text-muted-foreground">
                 Brief Página Web
               </div>
+              {isAdmin && (
+                <Button 
+                  onClick={() => navigate('/admin')}
+                  variant="outline" 
+                  size="sm"
+                  className="flex items-center gap-2"
+                >
+                  <Shield className="w-4 h-4" />
+                  Admin
+                </Button>
+              )}
               <SignedOut>
                 <SignInButton mode="modal">
                   <Button variant="outline" size="sm">
