@@ -1,4 +1,3 @@
-
 import { SignedIn, SignedOut, SignInButton } from '@clerk/clerk-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -54,12 +53,11 @@ const Landing = () => {
                       Iniciar Sesión
                     </Button>
                   </SignInButton>
-                  <Button 
-                    onClick={() => navigate('/auth/sign-up')} 
-                    size="sm"
-                  >
-                    Registrarse
-                  </Button>
+                  <SignInButton mode="modal">
+                    <Button size="sm">
+                      Comenzar Ahora
+                    </Button>
+                  </SignInButton>
                 </div>
               </SignedOut>
               
@@ -91,14 +89,15 @@ const Landing = () => {
                   Comenzar Ahora
                 </Button>
               </SignInButton>
-              <Button 
-                variant="outline" 
-                size="lg" 
-                className="text-lg px-8 py-3"
-                onClick={() => navigate('/auth/sign-up')}
-              >
-                Crear Cuenta
-              </Button>
+              <SignInButton mode="modal">
+                <Button 
+                  variant="outline" 
+                  size="lg" 
+                  className="text-lg px-8 py-3"
+                >
+                  Comenzar Ahora
+                </Button>
+              </SignInButton>
             </div>
           </SignedOut>
 
