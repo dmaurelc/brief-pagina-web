@@ -49,6 +49,19 @@ const Auth = () => {
                 formFieldLabel: "text-foreground",
                 identityPreviewText: "text-foreground",
                 formResendCodeLink: "text-primary hover:text-primary/90"
+              },
+              variables: {
+                colorPrimary: "hsl(var(--primary))",
+                colorBackground: "hsl(var(--background))",
+                colorInputBackground: "hsl(var(--input))",
+                colorInputText: "hsl(var(--foreground))",
+                colorText: "hsl(var(--foreground))",
+                colorTextSecondary: "hsl(var(--muted-foreground))",
+                colorDanger: "hsl(var(--destructive))",
+                colorSuccess: "hsl(var(--primary))",
+                colorWarning: "hsl(var(--secondary))",
+                colorNeutral: "hsl(var(--muted))",
+                borderRadius: "0.5rem"
               }
             }}
           />
