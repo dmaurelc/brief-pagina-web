@@ -382,7 +382,7 @@ const AdminDashboard = () => {
               </p>
               <div className="flex items-center gap-2 mt-2">
                 <Shield className="w-4 h-4 text-green-400" />
-                <span className="text-sm text-green-400">Admin: {user.emailAddresses?.[0]?.emailAddress}</span>
+                <span className="text-sm text-green-400">Admin: {user?.emailAddresses?.[0]?.emailAddress}</span>
               </div>
             </div>
             <div className="flex gap-3">
