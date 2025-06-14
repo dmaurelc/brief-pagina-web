@@ -1,5 +1,5 @@
 
-import { SignIn, SignUp, useUser } from '@clerk/clerk-react';
+import { SignIn, useUser } from '@clerk/clerk-react';
 import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 
@@ -14,7 +14,7 @@ const Auth = () => {
   }, [isSignedIn, navigate]);
 
   return (
-    <div className="min-h-screen bg-accent-700 flex items-center justify-center">
+    <div className="min-h-screen bg-background flex items-center justify-center p-4">
       <div className="max-w-md w-full space-y-8">
         <div className="text-center">
           <img 
@@ -22,15 +22,15 @@ const Auth = () => {
             alt="DMaurel - Desarrollo Web Profesional" 
             className="w-32 h-auto mx-auto mb-8"
           />
-          <h2 className="text-3xl font-medium text-foreground mb-2">
+          <h2 className="text-3xl font-bold text-foreground mb-2">
             Iniciar Sesión
           </h2>
           <p className="text-muted-foreground">
-            Accede a tu cuenta para gestionar tus briefs
+            Accede a tu cuenta para gestionar tus presupuestos
           </p>
         </div>
         
-        <div className="bg-card rounded-lg p-8 shadow-lg">
+        <div className="bg-card rounded-xl p-8 shadow-xl border border-border">
           <SignIn 
             routing="path" 
             path="/auth/sign-in"
@@ -39,12 +39,16 @@ const Auth = () => {
             appearance={{
               elements: {
                 rootBox: "w-full",
-                card: "bg-transparent shadow-none",
+                card: "bg-transparent shadow-none border-0",
                 headerTitle: "hidden",
                 headerSubtitle: "hidden",
-                socialButtonsBlockButton: "w-full",
-                formButtonPrimary: "w-full bg-primary text-primary-foreground hover:bg-primary/90",
-                footerActionLink: "text-primary hover:text-primary/90"
+                socialButtonsBlockButton: "w-full bg-secondary text-secondary-foreground hover:bg-secondary/80 border border-border",
+                formButtonPrimary: "w-full bg-primary text-primary-foreground hover:bg-primary/90 font-medium",
+                footerActionLink: "text-primary hover:text-primary/90",
+                formFieldInput: "bg-input border-border text-foreground",
+                formFieldLabel: "text-foreground",
+                identityPreviewText: "text-foreground",
+                formResendCodeLink: "text-primary hover:text-primary/90"
               }
             }}
           />
