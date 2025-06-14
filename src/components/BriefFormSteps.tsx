@@ -1,69 +1,42 @@
-import React, { useState, useEffect } from 'react';
-import { Button } from '@/components/ui/button';
+
+import React from 'react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Progress } from '@/components/ui/progress';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
-import { ChevronLeft, ChevronRight, Send, Save, Building, Briefcase, DollarSign, Settings } from 'lucide-react';
-import { toast } from '@/hooks/use-toast';
-import { supabase } from '@/integrations/supabase/client';
-import { 
-  validateCurrentStep, 
-  validateAllRequiredFields, 
-  getFirstIncompleteStep, 
-  hasFieldError,
-  fieldLabels 
-} from '@/utils/formValidation';
+import { Building, Briefcase, DollarSign, Settings } from 'lucide-react';
 
 interface FormData {
-  // Información de la empresa
   companyName: string;
   contactName: string;
   email: string;
   phone: string;
   industry: string;
-  
-  // Sobre el proyecto
   projectType: string;
   projectDescription: string;
   pages: string[];
   features: string[];
   timeline: string;
-  
-  // Presupuesto y objetivos
   budget: string;
   mainGoals: string;
   targetAudience: string;
-  
-  // Información técnica
   existingWebsite: string;
   competitorWebsites: string;
   designPreferences: string;
   additionalNotes: string;
 }
 
-const initialFormData: FormData = {
-  companyName: '',
-  contactName: '',
-  email: '',
-  phone: '',
-  industry: '',
-  projectType: '',
-  projectDescription: '',
-  pages: [],
-  features: [],
-  timeline: '',
-  budget: '',
-  mainGoals: '',
-  targetAudience: '',
-  existingWebsite: '',
-  competitorWebsites: '',
-  designPreferences: '',
-  additionalNotes: ''
-};
+interface BriefFormStepsProps {
+  currentStep: number;
+  formData: FormData;
+  updateFormData: (field: keyof FormData, value: string | string[]) => void;
+  handlePageToggle: (page: string, checked: boolean) => void;
+  handleFeatureToggle: (feature: string, checked: boolean) => void;
+  getInputClassName: (fieldName: keyof FormData) => string;
+  getLabelClassName: (fieldName: keyof FormData) => string;
+  getBudgetLabel: (budgetValue: string) => string;
+}
 
 const industryOptions = [
   'Tecnología',
@@ -110,367 +83,16 @@ const featuresOptions = [
   'Chatbot con IA'
 ];
 
-const getBudgetLabel = (budgetValue: string) => {
-  const budgetLabels: { [key: string]: string } = {
-    'menos-300000': 'Menos de $300.000 CLP',
-    '300000-500000': 'Entre $300.000 - $500.000 CLP',
-    '500000-800000': 'Entre $500.000 - $800.000 CLP',
-    '800000-1000000': 'Entre $800.000 - $1.000.000 CLP',
-    'mas-1000000': 'Más de $1.000.000 CLP',
-    'por-definir': 'Por definir'
-  };
-  return budgetLabels[budgetValue] || budgetValue;
-};
-
-const BriefForm = () => {
-  const [currentStep, setCurrentStep] = useState(1);
-  const [formData, setFormData] = useState<FormData>(initialFormData);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isSubmitted, setIsSubmitted] = useState(false);
-  const [validationErrors, setValidationErrors] = useState<string[]>([]);
-  const [submissionStep, setSubmissionStep] = useState('');
-
-  const totalSteps = 5;
-
-  // Cargar datos del localStorage al montar el componente
-  useEffect(() => {
-    const savedData = localStorage.getItem('briefweb-form-data');
-    if (savedData) {
-      try {
-        const parsedData = JSON.parse(savedData);
-        // Asegurar que pages y features siempre sean arrays
-        setFormData({
-          ...parsedData,
-          pages: Array.isArray(parsedData.pages) ? parsedData.pages : [],
-          features: Array.isArray(parsedData.features) ? parsedData.features : []
-        });
-        toast({
-          title: "Datos recuperados",
-          description: "Se han cargado los datos guardados anteriormente.",
-        });
-      } catch (error) {
-        console.error('Error al cargar datos guardados:', error);
-      }
-    }
-  }, []);
-
-  // Guardar datos en localStorage automáticamente cada vez que cambian
-  useEffect(() => {
-    localStorage.setItem('briefweb-form-data', JSON.stringify(formData));
-  }, [formData]);
-
-  const updateFormData = (field: keyof FormData, value: string | string[]) => {
-    setFormData(prev => ({
-      ...prev,
-      [field]: value
-    }));
-    
-    // Clear validation errors when user starts typing
-    if (validationErrors.length > 0) {
-      setValidationErrors([]);
-    }
-  };
-
-  const handlePageToggle = (page: string, checked: boolean) => {
-    const currentPages = Array.isArray(formData.pages) ? formData.pages : [];
-    const updatedPages = checked
-      ? [...currentPages, page]
-      : currentPages.filter(p => p !== page);
-    updateFormData('pages', updatedPages);
-  };
-
-  const handleFeatureToggle = (feature: string, checked: boolean) => {
-    const currentFeatures = Array.isArray(formData.features) ? formData.features : [];
-    const updatedFeatures = checked
-      ? [...currentFeatures, feature]
-      : currentFeatures.filter(f => f !== feature);
-    updateFormData('features', updatedFeatures);
-  };
-
-  const saveProgress = () => {
-    // Esta función ahora solo muestra un mensaje ya que el guardado es automático
-    toast({
-      title: "Datos guardados",
-      description: "Tus datos se guardan automáticamente mientras completas el formulario.",
-    });
-  };
-
-  const nextStep = () => {
-    // Validate current step before advancing
-    const validation = validateCurrentStep(formData, currentStep);
-    
-    if (!validation.isValid) {
-      setValidationErrors(validation.missingFields);
-      return; // Don't advance if validation fails
-    }
-
-    // Clear validation errors and advance
-    setValidationErrors([]);
-    if (currentStep < totalSteps) {
-      setCurrentStep(currentStep + 1);
-    }
-  };
-
-  const prevStep = () => {
-    // Always allow going back, clear validation errors
-    setValidationErrors([]);
-    if (currentStep > 1) {
-      setCurrentStep(currentStep - 1);
-    }
-  };
-
-  const submitForm = async () => {
-    // Final validation before submission
-    const validation = validateAllRequiredFields(formData);
-    
-    if (!validation.isValid) {
-      // Navigate to the first incomplete step
-      const firstIncompleteStep = getFirstIncompleteStep(formData);
-      setCurrentStep(firstIncompleteStep);
-      setValidationErrors(validation.missingFields);
-      return;
-    }
-
-    setIsSubmitting(true);
-    setSubmissionStep('Guardando datos...');
-    
-    try {
-      // Paso 1: Guardar en Supabase
-      console.log('Guardando brief en Supabase...');
-      const { data: briefData, error: supabaseError } = await supabase
-        .from('briefs')
-        .insert({
-          company_name: formData.companyName,
-          contact_name: formData.contactName,
-          email: formData.email,
-          phone: formData.phone,
-          industry: formData.industry,
-          project_type: formData.projectType,
-          project_description: formData.projectDescription,
-          pages: formData.pages,
-          features: formData.features,
-          timeline: formData.timeline,
-          budget: formData.budget,
-          main_goals: formData.mainGoals,
-          target_audience: formData.targetAudience,
-          existing_website: formData.existingWebsite,
-          competitor_websites: formData.competitorWebsites,
-          design_preferences: formData.designPreferences,
-          additional_notes: formData.additionalNotes
-        })
-        .select()
-        .single();
-
-      if (supabaseError) {
-        console.error('Error guardando en Supabase:', supabaseError);
-        throw new Error('Error al guardar los datos en la base de datos');
-      }
-
-      console.log('Brief guardado exitosamente:', briefData.id);
-      
-      // Paso 2: Intentar generar PDF (no crítico)
-      let pdfUrl = null;
-      let fileName = null;
-      
-      try {
-        setSubmissionStep('Generando PDF...');
-        console.log('Generando PDF para brief:', briefData.id);
-        
-        const pdfResponse = await supabase.functions.invoke('generate-brief-pdf', {
-          body: { briefId: briefData.id }
-        });
-
-        if (pdfResponse.error) {
-          console.warn('Error generando PDF (no crítico):', pdfResponse.error);
-          // No lanzamos error aquí, el PDF es opcional
-        } else if (pdfResponse.data?.pdfUrl) {
-          pdfUrl = pdfResponse.data.pdfUrl;
-          fileName = pdfResponse.data.fileName;
-          console.log('PDF generado exitosamente:', pdfUrl);
-        }
-      } catch (pdfError) {
-        console.warn('Error generando PDF (continuando sin PDF):', pdfError);
-        // No lanzamos error, el PDF es opcional
-      }
-
-      // Paso 3: Enviar notificación por email
-      try {
-        setSubmissionStep('Enviando notificación...');
-        console.log('Enviando notificación por email...');
-        
-        const formDataToSend = new FormData();
-        formDataToSend.append('access_key', 'afffbf8d-e6b6-4f58-b6df-2615afc756f5');
-        formDataToSend.append('subject', `Nuevo Brief Recibido - ${formData.companyName}`);
-        
-        // Crear mensaje mejorado
-        const summaryMessage = `
-NUEVO BRIEF RECIBIDO - Brief Página Web
-
-=== INFORMACIÓN DE LA EMPRESA ===
-Empresa: ${formData.companyName}
-Contacto: ${formData.contactName}
-Email: ${formData.email}
-Teléfono: ${formData.phone || 'No proporcionado'}
-Industria: ${formData.industry}
-
-=== PROYECTO ===
-Tipo: ${formData.projectType}
-Timeline: ${formData.timeline}
-Páginas: ${formData.pages.join(', ') || 'No especificadas'}
-Funcionalidades: ${formData.features.join(', ') || 'No especificadas'}
-
-=== PRESUPUESTO Y OBJETIVOS ===
-Presupuesto: ${getBudgetLabel(formData.budget)}
-Objetivos: ${formData.mainGoals}
-Público objetivo: ${formData.targetAudience}
-
-=== INFORMACIÓN TÉCNICA ===
-Sitio actual: ${formData.existingWebsite || 'No tiene'}
-Descripción: ${formData.projectDescription}
-
-${pdfUrl ? `=== DOCUMENTOS ===
-📄 Brief completo en PDF: ${pdfUrl}
-📥 Nombre del archivo: ${fileName}` : '⚠️ PDF no disponible - revisar brief en panel admin'}
-
----
-ID del Brief: ${briefData.id}
-Fecha: ${new Date().toLocaleString('es-CL')}
-        `;
-
-        formDataToSend.append('message', summaryMessage);
-
-        const emailResponse = await fetch('https://api.web3forms.com/submit', {
-          method: 'POST',
-          body: formDataToSend
-        });
-
-        if (!emailResponse.ok) {
-          console.warn('Error enviando email de notificación:', emailResponse.statusText);
-          // No lanzamos error, el email es opcional
-        } else {
-          console.log('Email enviado exitosamente');
-        }
-      } catch (emailError) {
-        console.warn('Error enviando email (continuando):', emailError);
-        // No lanzamos error, el email es opcional
-      }
-
-      // Éxito total
-      toast({
-        title: "¡Brief enviado exitosamente!",
-        description: pdfUrl 
-          ? "Tu información ha sido guardada y el PDF generado. Recibirás tu presupuesto en las próximas 24 horas."
-          : "Tu información ha sido guardada exitosamente. Recibirás tu presupuesto en las próximas 24 horas.",
-      });
-      
-      setIsSubmitted(true);
-      
-      // Limpiar datos guardados
-      localStorage.removeItem('briefweb-form-data');
-      
-    } catch (error: any) {
-      console.error('Error crítico en el proceso de envío:', error);
-      
-      let errorMessage = 'Hubo un problema al procesar tu solicitud.';
-      
-      if (error.message?.includes('base de datos')) {
-        errorMessage = 'Error al guardar los datos. Por favor verifica tu conexión e inténtalo de nuevo.';
-      } else if (error.message?.includes('red') || error.message?.includes('network')) {
-        errorMessage = 'Error de conexión. Por favor verifica tu conexión a internet e inténtalo de nuevo.';
-      }
-      
-      toast({
-        title: "Error al procesar el brief",
-        description: errorMessage + ' Si el problema persiste, contacta con soporte.',
-        variant: "destructive"
-      });
-    } finally {
-      setIsSubmitting(false);
-      setSubmissionStep('');
-    }
-  };
-
-  const startNewBrief = () => {
-    localStorage.removeItem('briefweb-form-data');
-    setFormData(initialFormData);
-    setCurrentStep(1);
-    setIsSubmitted(false);
-    toast({
-      title: "Nuevo formulario iniciado",
-      description: "Puedes comenzar un nuevo brief desde cero.",
-    });
-  };
-
-  const reviewBrief = () => {
-    setIsSubmitted(false);
-    setCurrentStep(5); // Volver al resumen
-    toast({
-      title: "Revisando brief",
-      description: "Puedes revisar y modificar tu información si es necesario.",
-    });
-  };
-
-  // Helper function to get input className with error styling
-  const getInputClassName = (fieldName: keyof FormData) => {
-    const hasError = hasFieldError(formData, fieldName, currentStep) && validationErrors.length > 0;
-    return hasError ? "border-red-500 focus:border-red-500 focus:ring-red-200" : "";
-  };
-
-  // Helper function to get label className with error styling
-  const getLabelClassName = (fieldName: keyof FormData) => {
-    const hasError = hasFieldError(formData, fieldName, currentStep) && validationErrors.length > 0;
-    return hasError ? "text-red-600 font-medium" : "";
-  };
-
-  // Si ya fue enviado, mostrar opciones
-  if (isSubmitted) {
-    return (
-      <Card className="w-full max-w-4xl mx-auto bg-accent-900">
-        <CardContent className="text-center py-12">
-          <div className="mb-8">
-            <div className="bg-green-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
-              <svg className="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-              </svg>
-            </div>
-            <h3 className="text-2xl font-semibold text-gray-900 mb-4">
-              ¡Brief enviado exitosamente!
-            </h3>
-            <p className="text-white mb-8">
-              Tu información ha sido guardada y analizada. Recibirás tu presupuesto personalizado en las próximas 24 horas.
-            </p>
-          </div>
-          
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Button
-              onClick={reviewBrief}
-              variant="outline"
-              size="lg"
-              className="flex items-center"
-            >
-              <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-              </svg>
-              Revisar información enviada
-            </Button>
-            
-            <Button
-              onClick={startNewBrief}
-              size="lg"
-              className="flex items-center"
-            >
-              <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-              </svg>
-              Solicitar nuevo presupuesto
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
-    );
-  }
-
+export const BriefFormSteps: React.FC<BriefFormStepsProps> = ({
+  currentStep,
+  formData,
+  updateFormData,
+  handlePageToggle,
+  handleFeatureToggle,
+  getInputClassName,
+  getLabelClassName,
+  getBudgetLabel
+}) => {
   const renderStep = () => {
     switch (currentStep) {
       case 1:
@@ -930,79 +552,7 @@ Fecha: ${new Date().toLocaleString('es-CL')}
     }
   };
 
-  const getStepTitle = () => {
-    switch (currentStep) {
-      case 1: return "Información de la empresa";
-      case 2: return "Detalles del proyecto";
-      case 3: return "Presupuesto y objetivos";
-      case 4: return "Información técnica";
-      case 5: return "Resumen y envío";
-      default: return "";
-    }
-  };
-
-  return (
-    <div className="w-full max-w-4xl mx-auto space-y-4">
-      <Card className="bg-accent-900">
-        <CardHeader>
-          <CardTitle className="text-xl font-medium">{getStepTitle()}</CardTitle>
-          <Progress value={(currentStep / totalSteps) * 100} className="w-full" />
-          <p className="text-sm text-muted-foreground">
-            Paso {currentStep} de {totalSteps} • Guardado automático activado
-          </p>
-        </CardHeader>
-        
-        <CardContent>
-          {renderStep()}
-          
-          <div className="flex justify-between mt-8">
-            <Button
-              onClick={prevStep}
-              disabled={currentStep === 1}
-              variant="outline"
-            >
-              <ChevronLeft className="w-4 h-4 mr-2" />
-              Anterior
-            </Button>
-            
-            {currentStep === totalSteps ? (
-              <Button
-                onClick={submitForm}
-                disabled={isSubmitting}
-                className="ml-auto"
-                size="lg"
-              >
-                {isSubmitting ? (
-                  <div className="flex items-center">
-                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                    {submissionStep || "Procesando..."}
-                  </div>
-                ) : (
-                  <>
-                    <Send className="w-4 h-4 mr-2" />
-                    Enviar Brief
-                  </>
-                )}
-              </Button>
-            ) : (
-              <Button onClick={nextStep}>
-                Siguiente
-                <ChevronRight className="w-4 h-4 ml-2" />
-              </Button>
-            )}
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Auto-save button centered */}
-      <div className="flex justify-center">
-        <Button onClick={saveProgress} variant="outline" size="sm">
-          <Save className="w-4 h-4 mr-2" />
-          Guardado automático
-        </Button>
-      </div>
-    </div>
-  );
+  return renderStep();
 };
 
-export default BriefForm;
+export default BriefFormSteps;
