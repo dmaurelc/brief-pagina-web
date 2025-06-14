@@ -1,8 +1,8 @@
 
-import { SignedIn, SignedOut, SignInButton, UserButton, useClerk } from '@clerk/clerk-react';
+import { SignedIn, SignedOut, SignInButton, UserButton } from '@clerk/clerk-react';
 import { Button } from '@/components/ui/button';
 import { useNavigate } from 'react-router-dom';
-import { Shield, User, LogOut } from 'lucide-react';
+import { Shield, User } from 'lucide-react';
 import { useAdminRole } from '@/hooks/useAdminRole';
 import {
   DropdownMenu,
@@ -15,13 +15,6 @@ import {
 const Header = () => {
   const navigate = useNavigate();
   const { isAdmin } = useAdminRole();
-  const { signOut } = useClerk();
-
-  const handleSignOut = () => {
-    signOut(() => {
-      navigate('/');
-    });
-  };
 
   return (
     <header className="bg-card border-b border-border">
@@ -83,11 +76,6 @@ const Header = () => {
                         </DropdownMenuItem>
                       </>
                     )}
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem onClick={handleSignOut}>
-                      <LogOut className="w-4 h-4 mr-2" />
-                      Cerrar Sesión
-                    </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
 

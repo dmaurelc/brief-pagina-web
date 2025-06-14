@@ -1,426 +1,657 @@
-
-import { useState } from 'react';
-import { useUser } from '@clerk/clerk-react';
-import { supabase } from '@/integrations/supabase/client';
+import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Progress } from '@/components/ui/progress';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { useToast } from '@/hooks/use-toast';
-import { ArrowLeft, ArrowRight, Send, Loader2 } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { ChevronLeft, ChevronRight, Send, Save, Building, Briefcase, DollarSign, Settings } from 'lucide-react';
+import { toast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
+import { 
+  validateCurrentStep, 
+  validateAllRequiredFields, 
+  getFirstIncompleteStep, 
+  hasFieldError,
+  fieldLabels 
+} from '@/utils/formValidation';
+
+interface FormData {
+  // Información de la empresa
+  companyName: string;
+  contactName: string;
+  email: string;
+  phone: string;
+  industry: string;
+  
+  // Sobre el proyecto
+  projectType: string;
+  projectDescription: string;
+  pages: string[];
+  features: string[];
+  timeline: string;
+  
+  // Presupuesto y objetivos
+  budget: string;
+  mainGoals: string;
+  targetAudience: string;
+  
+  // Información técnica
+  existingWebsite: string;
+  competitorWebsites: string;
+  designPreferences: string;
+  additionalNotes: string;
+}
+
+const initialFormData: FormData = {
+  companyName: '',
+  contactName: '',
+  email: '',
+  phone: '',
+  industry: '',
+  projectType: '',
+  projectDescription: '',
+  pages: [],
+  features: [],
+  timeline: '',
+  budget: '',
+  mainGoals: '',
+  targetAudience: '',
+  existingWebsite: '',
+  competitorWebsites: '',
+  designPreferences: '',
+  additionalNotes: ''
+};
+
+const industryOptions = [
+  'Tecnología',
+  'Salud',
+  'Educación',
+  'Retail/E-commerce',
+  'Servicios Financieros',
+  'Inmobiliaria',
+  'Turismo y Hospitalidad',
+  'Alimentación y Bebidas',
+  'Manufactura',
+  'Consultoría',
+  'Marketing y Publicidad',
+  'Deportes y Fitness',
+  'Arte y Entretenimiento',
+  'Automotriz',
+  'Construcción',
+  'Legal',
+  'Otros'
+];
+
+const pagesOptions = [
+  'Inicio',
+  'Nosotros',
+  'Servicios',
+  'Productos',
+  'Soluciones',
+  'Portafolio',
+  'Blog',
+  'Noticias',
+  'Contacto',
+  'Términos y Condiciones',
+  'Política de Privacidad'
+];
+
+const featuresOptions = [
+  'Galería de imágenes',
+  'Múlti lenguaje',
+  'Integración con Newsletter',
+  'Preguntas Frecuentes',
+  'Testimonios de Clientes',
+  'Clientes o Partners',
+  'Chat en vivo',
+  'Chatbot con IA'
+];
+
+const getBudgetLabel = (budgetValue: string) => {
+  const budgetLabels: { [key: string]: string } = {
+    'menos-300000': 'Menos de $300.000 CLP',
+    '300000-500000': 'Entre $300.000 - $500.000 CLP',
+    '500000-800000': 'Entre $500.000 - $800.000 CLP',
+    '800000-1000000': 'Entre $800.000 - $1.000.000 CLP',
+    'mas-1000000': 'Más de $1.000.000 CLP',
+    'por-definir': 'Por definir'
+  };
+  return budgetLabels[budgetValue] || budgetValue;
+};
 
 const BriefForm = () => {
-  const { user } = useUser();
-  const { toast } = useToast();
-  const navigate = useNavigate();
   const [currentStep, setCurrentStep] = useState(1);
+  const [formData, setFormData] = useState<FormData>(initialFormData);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isSubmitted, setIsSubmitted] = useState(false);
+  const [validationErrors, setValidationErrors] = useState<string[]>([]);
+  const [submissionStep, setSubmissionStep] = useState('');
 
-  // Form data state
-  const [formData, setFormData] = useState({
-    company_name: '',
-    contact_name: '',
-    contact_email: '',
-    contact_phone: '',
-    industry: '',
-    project_type: '',
-    budget: '',
-    timeline: '',
-    description: '',
-    objectives: '',
-    target_audience: '',
-    competitors: '',
-    pages: [] as string[],
-    features: [] as string[],
-    design_preferences: '',
-    content_ready: '',
-    hosting_domain: '',
-    additional_comments: ''
-  });
+  const totalSteps = 5;
 
-  // Page options, feature options, validation functions
-  const pageOptions = [
-    'Inicio/Home',
-    'Sobre Nosotros/About',
-    'Servicios/Services',
-    'Productos/Products',
-    'Blog',
-    'Contacto/Contact',
-    'Galería/Gallery',
-    'Testimonios/Reviews',
-    'FAQ',
-    'Términos y Condiciones',
-    'Política de Privacidad',
-    'Tienda Online/E-commerce'
-  ];
+  // Cargar datos del localStorage al montar el componente
+  useEffect(() => {
+    const savedData = localStorage.getItem('briefweb-form-data');
+    if (savedData) {
+      try {
+        const parsedData = JSON.parse(savedData);
+        // Asegurar que pages y features siempre sean arrays
+        setFormData({
+          ...parsedData,
+          pages: Array.isArray(parsedData.pages) ? parsedData.pages : [],
+          features: Array.isArray(parsedData.features) ? parsedData.features : []
+        });
+        toast({
+          title: "Datos recuperados",
+          description: "Se han cargado los datos guardados anteriormente.",
+        });
+      } catch (error) {
+        console.error('Error al cargar datos guardados:', error);
+      }
+    }
+  }, []);
 
-  const featureOptions = [
-    'Formulario de contacto',
-    'Chat en vivo',
-    'Newsletter/Suscripción',
-    'Integración redes sociales',
-    'Blog/Sistema de contenidos',
-    'Galería de imágenes',
-    'Videos',
-    'Testimonios de clientes',
-    'Mapa de ubicación',
-    'Calendario de eventos',
-    'Sistema de reservas',
-    'Carrito de compras',
-    'Pasarela de pagos',
-    'Área de usuarios/Login',
-    'Buscador interno',
-    'Múltiples idiomas',
-    'Optimización SEO',
-    'Analytics/Estadísticas'
-  ];
+  // Guardar datos en localStorage automáticamente cada vez que cambian
+  useEffect(() => {
+    localStorage.setItem('briefweb-form-data', JSON.stringify(formData));
+  }, [formData]);
 
-  const industryOptions = [
-    'Tecnología',
-    'Salud',
-    'Educación',
-    'Finanzas',
-    'Retail/Comercio',
-    'Inmobiliario',
-    'Turismo',
-    'Restauración',
-    'Consultoría',
-    'Manufactura',
-    'Servicios profesionales',
-    'Arte y entretenimiento',
-    'Otro'
-  ];
-
-  const validateStep = (step: number): boolean => {
-    switch (step) {
-      case 1:
-        return formData.company_name.trim() !== '' && 
-               formData.contact_name.trim() !== '' && 
-               formData.contact_email.trim() !== '' &&
-               formData.industry !== '';
-      case 2:
-        return formData.project_type !== '' && 
-               formData.budget !== '' && 
-               formData.timeline !== '';
-      case 3:
-        return formData.description.trim() !== '' && 
-               formData.objectives.trim() !== '' &&
-               formData.target_audience.trim() !== '';
-      case 4:
-        return formData.pages.length > 0;
-      case 5:
-        return true; // Optional step
-      default:
-        return true;
+  const updateFormData = (field: keyof FormData, value: string | string[]) => {
+    setFormData(prev => ({
+      ...prev,
+      [field]: value
+    }));
+    
+    // Clear validation errors when user starts typing
+    if (validationErrors.length > 0) {
+      setValidationErrors([]);
     }
   };
 
-  const handleInputChange = (field: string, value: string) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
+  const handlePageToggle = (page: string, checked: boolean) => {
+    const currentPages = Array.isArray(formData.pages) ? formData.pages : [];
+    const updatedPages = checked
+      ? [...currentPages, page]
+      : currentPages.filter(p => p !== page);
+    updateFormData('pages', updatedPages);
   };
 
-  const handleArrayChange = (field: 'pages' | 'features', value: string, checked: boolean) => {
-    setFormData(prev => ({
-      ...prev,
-      [field]: checked 
-        ? [...prev[field], value]
-        : prev[field].filter(item => item !== value)
-    }));
+  const handleFeatureToggle = (feature: string, checked: boolean) => {
+    const currentFeatures = Array.isArray(formData.features) ? formData.features : [];
+    const updatedFeatures = checked
+      ? [...currentFeatures, feature]
+      : currentFeatures.filter(f => f !== feature);
+    updateFormData('features', updatedFeatures);
+  };
+
+  const saveProgress = () => {
+    // Esta función ahora solo muestra un mensaje ya que el guardado es automático
+    toast({
+      title: "Datos guardados",
+      description: "Tus datos se guardan automáticamente mientras completas el formulario.",
+    });
   };
 
   const nextStep = () => {
-    if (validateStep(currentStep)) {
-      setCurrentStep(prev => Math.min(prev + 1, 5));
-    } else {
-      toast({
-        title: "Campos requeridos",
-        description: "Por favor completa todos los campos obligatorios antes de continuar.",
-        variant: "destructive"
-      });
+    // Validate current step before advancing
+    const validation = validateCurrentStep(formData, currentStep);
+    
+    if (!validation.isValid) {
+      setValidationErrors(validation.missingFields);
+      return; // Don't advance if validation fails
+    }
+
+    // Clear validation errors and advance
+    setValidationErrors([]);
+    if (currentStep < totalSteps) {
+      setCurrentStep(currentStep + 1);
     }
   };
 
   const prevStep = () => {
-    setCurrentStep(prev => Math.max(prev - 1, 1));
+    // Always allow going back, clear validation errors
+    setValidationErrors([]);
+    if (currentStep > 1) {
+      setCurrentStep(currentStep - 1);
+    }
   };
 
   const submitForm = async () => {
-    if (!user?.emailAddresses?.[0]?.emailAddress) {
-      toast({
-        title: "Error de autenticación",
-        description: "Debes estar autenticado para enviar el brief.",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    if (!validateStep(currentStep)) {
-      toast({
-        title: "Campos requeridos",
-        description: "Por favor completa todos los campos obligatorios.",
-        variant: "destructive"
-      });
+    // Final validation before submission
+    const validation = validateAllRequiredFields(formData);
+    
+    if (!validation.isValid) {
+      // Navigate to the first incomplete step
+      const firstIncompleteStep = getFirstIncompleteStep(formData);
+      setCurrentStep(firstIncompleteStep);
+      setValidationErrors(validation.missingFields);
       return;
     }
 
     setIsSubmitting(true);
-
+    setSubmissionStep('Guardando datos...');
+    
     try {
-      console.log('🚀 Iniciando envío del brief...');
-      console.log('📝 Datos del formulario:', formData);
-      console.log('👤 Usuario:', user.emailAddresses[0].emailAddress);
-
-      // Mapear los datos del formulario a la estructura de la tabla briefs
-      const briefData = {
-        user_id: user.emailAddresses[0].emailAddress,
-        company_name: formData.company_name.trim(),
-        contact_name: formData.contact_name.trim(),
-        email: formData.contact_email.trim(), // Mapear contact_email a email
-        phone: formData.contact_phone.trim() || null,
-        industry: formData.industry, // Campo requerido
-        project_type: formData.project_type,
-        budget: formData.budget,
-        timeline: formData.timeline,
-        project_description: formData.description.trim(), // Mapear description a project_description
-        main_goals: formData.objectives.trim(), // Mapear objectives a main_goals
-        target_audience: formData.target_audience.trim(),
-        competitor_websites: formData.competitors.trim() || null,
-        pages: formData.pages.length > 0 ? formData.pages : null,
-        features: formData.features.length > 0 ? formData.features : null,
-        design_preferences: formData.design_preferences.trim() || null,
-        additional_notes: formData.additional_comments.trim() || null,
-        status: 'pending'
-      };
-
-      console.log('📊 Datos preparados para envío:', briefData);
-
-      // Insertar en la base de datos
-      const { data, error } = await supabase
+      // Paso 1: Guardar en Supabase
+      console.log('Guardando brief en Supabase...');
+      const { data: briefData, error: supabaseError } = await supabase
         .from('briefs')
-        .insert(briefData)
+        .insert({
+          company_name: formData.companyName,
+          contact_name: formData.contactName,
+          email: formData.email,
+          phone: formData.phone,
+          industry: formData.industry,
+          project_type: formData.projectType,
+          project_description: formData.projectDescription,
+          pages: formData.pages,
+          features: formData.features,
+          timeline: formData.timeline,
+          budget: formData.budget,
+          main_goals: formData.mainGoals,
+          target_audience: formData.targetAudience,
+          existing_website: formData.existingWebsite,
+          competitor_websites: formData.competitorWebsites,
+          design_preferences: formData.designPreferences,
+          additional_notes: formData.additionalNotes
+        })
         .select()
         .single();
 
-      if (error) {
-        console.error('❌ Error de Supabase:', error);
-        throw new Error(`Error de base de datos: ${error.message}`);
+      if (supabaseError) {
+        console.error('Error guardando en Supabase:', supabaseError);
+        throw new Error('Error al guardar los datos en la base de datos');
       }
 
-      console.log('✅ Brief guardado exitosamente:', data);
-
-      // Intentar generar PDF (no crítico)
+      console.log('Brief guardado exitosamente:', briefData.id);
+      
+      // Paso 2: Intentar generar PDF (no crítico)
+      let pdfUrl = null;
+      let fileName = null;
+      
       try {
-        console.log('📄 Intentando generar PDF...');
-        const { error: pdfError } = await supabase.functions.invoke('generate-brief-pdf', {
-          body: { briefId: data.id }
+        setSubmissionStep('Generando PDF...');
+        console.log('Generando PDF para brief:', briefData.id);
+        
+        const pdfResponse = await supabase.functions.invoke('generate-brief-pdf', {
+          body: { briefId: briefData.id }
         });
 
-        if (pdfError) {
-          console.warn('⚠️ Error generando PDF (no crítico):', pdfError);
-        } else {
-          console.log('✅ PDF generado exitosamente');
+        if (pdfResponse.error) {
+          console.warn('Error generando PDF (no crítico):', pdfResponse.error);
+          // No lanzamos error aquí, el PDF es opcional
+        } else if (pdfResponse.data?.pdfUrl) {
+          pdfUrl = pdfResponse.data.pdfUrl;
+          fileName = pdfResponse.data.fileName;
+          console.log('PDF generado exitosamente:', pdfUrl);
         }
       } catch (pdfError) {
-        console.warn('⚠️ Error generando PDF (no crítico):', pdfError);
+        console.warn('Error generando PDF (continuando sin PDF):', pdfError);
+        // No lanzamos error, el PDF es opcional
       }
 
-      // Éxito
+      // Paso 3: Enviar notificación por email
+      try {
+        setSubmissionStep('Enviando notificación...');
+        console.log('Enviando notificación por email...');
+        
+        const formDataToSend = new FormData();
+        formDataToSend.append('access_key', 'afffbf8d-e6b6-4f58-b6df-2615afc756f5');
+        formDataToSend.append('subject', `Nuevo Brief Recibido - ${formData.companyName}`);
+        
+        // Crear mensaje mejorado
+        const summaryMessage = `
+NUEVO BRIEF RECIBIDO - Brief Página Web
+
+=== INFORMACIÓN DE LA EMPRESA ===
+Empresa: ${formData.companyName}
+Contacto: ${formData.contactName}
+Email: ${formData.email}
+Teléfono: ${formData.phone || 'No proporcionado'}
+Industria: ${formData.industry}
+
+=== PROYECTO ===
+Tipo: ${formData.projectType}
+Timeline: ${formData.timeline}
+Páginas: ${formData.pages.join(', ') || 'No especificadas'}
+Funcionalidades: ${formData.features.join(', ') || 'No especificadas'}
+
+=== PRESUPUESTO Y OBJETIVOS ===
+Presupuesto: ${getBudgetLabel(formData.budget)}
+Objetivos: ${formData.mainGoals}
+Público objetivo: ${formData.targetAudience}
+
+=== INFORMACIÓN TÉCNICA ===
+Sitio actual: ${formData.existingWebsite || 'No tiene'}
+Descripción: ${formData.projectDescription}
+
+${pdfUrl ? `=== DOCUMENTOS ===
+📄 Brief completo en PDF: ${pdfUrl}
+📥 Nombre del archivo: ${fileName}` : '⚠️ PDF no disponible - revisar brief en panel admin'}
+
+---
+ID del Brief: ${briefData.id}
+Fecha: ${new Date().toLocaleString('es-CL')}
+        `;
+
+        formDataToSend.append('message', summaryMessage);
+
+        const emailResponse = await fetch('https://api.web3forms.com/submit', {
+          method: 'POST',
+          body: formDataToSend
+        });
+
+        if (!emailResponse.ok) {
+          console.warn('Error enviando email de notificación:', emailResponse.statusText);
+          // No lanzamos error, el email es opcional
+        } else {
+          console.log('Email enviado exitosamente');
+        }
+      } catch (emailError) {
+        console.warn('Error enviando email (continuando):', emailError);
+        // No lanzamos error, el email es opcional
+      }
+
+      // Éxito total
       toast({
         title: "¡Brief enviado exitosamente!",
-        description: "Hemos recibido tu solicitud. Te contactaremos pronto con una propuesta personalizada.",
+        description: pdfUrl 
+          ? "Tu información ha sido guardada y el PDF generado. Recibirás tu presupuesto en las próximas 24 horas."
+          : "Tu información ha sido guardada exitosamente. Recibirás tu presupuesto en las próximas 24 horas.",
       });
-
-      // Redirigir después de un breve delay
-      setTimeout(() => {
-        navigate('/my-account');
-      }, 2000);
-
-    } catch (error) {
-      console.error('❌ Error completo en submitForm:', error);
       
-      let errorMessage = "Error desconocido al enviar el brief.";
+      setIsSubmitted(true);
       
-      if (error instanceof Error) {
-        errorMessage = error.message;
-      } else if (typeof error === 'string') {
-        errorMessage = error;
+      // Limpiar datos guardados
+      localStorage.removeItem('briefweb-form-data');
+      
+    } catch (error: any) {
+      console.error('Error crítico en el proceso de envío:', error);
+      
+      let errorMessage = 'Hubo un problema al procesar tu solicitud.';
+      
+      if (error.message?.includes('base de datos')) {
+        errorMessage = 'Error al guardar los datos. Por favor verifica tu conexión e inténtalo de nuevo.';
+      } else if (error.message?.includes('red') || error.message?.includes('network')) {
+        errorMessage = 'Error de conexión. Por favor verifica tu conexión a internet e inténtalo de nuevo.';
       }
-
+      
       toast({
-        title: "Error al enviar el brief",
-        description: errorMessage + " Por favor intenta nuevamente.",
+        title: "Error al procesar el brief",
+        description: errorMessage + ' Si el problema persiste, contacta con soporte.',
         variant: "destructive"
       });
     } finally {
       setIsSubmitting(false);
+      setSubmissionStep('');
     }
   };
 
-  // Render step function
+  const startNewBrief = () => {
+    localStorage.removeItem('briefweb-form-data');
+    setFormData(initialFormData);
+    setCurrentStep(1);
+    setIsSubmitted(false);
+    toast({
+      title: "Nuevo formulario iniciado",
+      description: "Puedes comenzar un nuevo brief desde cero.",
+    });
+  };
+
+  const reviewBrief = () => {
+    setIsSubmitted(false);
+    setCurrentStep(5); // Volver al resumen
+    toast({
+      title: "Revisando brief",
+      description: "Puedes revisar y modificar tu información si es necesario.",
+    });
+  };
+
+  // Helper function to get input className with error styling
+  const getInputClassName = (fieldName: keyof FormData) => {
+    const hasError = hasFieldError(formData, fieldName, currentStep) && validationErrors.length > 0;
+    return hasError ? "border-red-500 focus:border-red-500 focus:ring-red-200" : "";
+  };
+
+  // Helper function to get label className with error styling
+  const getLabelClassName = (fieldName: keyof FormData) => {
+    const hasError = hasFieldError(formData, fieldName, currentStep) && validationErrors.length > 0;
+    return hasError ? "text-red-600 font-medium" : "";
+  };
+
+  // Si ya fue enviado, mostrar opciones
+  if (isSubmitted) {
+    return (
+      <Card className="w-full max-w-4xl mx-auto bg-accent-900">
+        <CardContent className="text-center py-12">
+          <div className="mb-8">
+            <div className="bg-green-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
+              <svg className="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+              </svg>
+            </div>
+            <h3 className="text-2xl font-semibold text-gray-900 mb-4">
+              ¡Brief enviado exitosamente!
+            </h3>
+            <p className="text-white mb-8">
+              Tu información ha sido guardada y analizada. Recibirás tu presupuesto personalizado en las próximas 24 horas.
+            </p>
+          </div>
+          
+          <div className="flex flex-col sm:flex-row gap-4 justify-center">
+            <Button
+              onClick={reviewBrief}
+              variant="outline"
+              size="lg"
+              className="flex items-center"
+            >
+              <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+              </svg>
+              Revisar información enviada
+            </Button>
+            
+            <Button
+              onClick={startNewBrief}
+              size="lg"
+              className="flex items-center"
+            >
+              <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+              </svg>
+              Solicitar nuevo presupuesto
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
   const renderStep = () => {
     switch (currentStep) {
       case 1:
         return (
           <div className="space-y-4">
-            <div className="grid grid-cols-1 gap-4">
-              <div>
-                <Label htmlFor="company_name">Nombre de la empresa *</Label>
-                <Input
-                  id="company_name"
-                  value={formData.company_name}
-                  onChange={(e) => handleInputChange('company_name', e.target.value)}
-                  placeholder="Tu empresa o negocio"
-                  required
-                />
-              </div>
-              <div>
-                <Label htmlFor="contact_name">Nombre de contacto *</Label>
-                <Input
-                  id="contact_name"
-                  value={formData.contact_name}
-                  onChange={(e) => handleInputChange('contact_name', e.target.value)}
-                  placeholder="Tu nombre completo"
-                  required
-                />
-              </div>
-              <div>
-                <Label htmlFor="contact_email">Email de contacto *</Label>
-                <Input
-                  id="contact_email"
-                  type="email"
-                  value={formData.contact_email}
-                  onChange={(e) => handleInputChange('contact_email', e.target.value)}
-                  placeholder="tu@email.com"
-                  required
-                />
-              </div>
-              <div>
-                <Label htmlFor="contact_phone">Teléfono (opcional)</Label>
-                <Input
-                  id="contact_phone"
-                  value={formData.contact_phone}
-                  onChange={(e) => handleInputChange('contact_phone', e.target.value)}
-                  placeholder="+56 9 1234 5678"
-                />
-              </div>
-              <div>
-                <Label>Industria o sector *</Label>
-                <RadioGroup
-                  value={formData.industry}
-                  onValueChange={(value) => handleInputChange('industry', value)}
-                  className="mt-2"
-                >
+            <div>
+              <Label htmlFor="companyName" className={getLabelClassName('companyName')}>
+                Nombre de la empresa *
+              </Label>
+              <Input
+                id="companyName"
+                value={formData.companyName}
+                onChange={(e) => updateFormData('companyName', e.target.value)}
+                placeholder="Ej: Mi Empresa S.A."
+                className={getInputClassName('companyName')}
+                required
+              />
+            </div>
+            <div>
+              <Label htmlFor="contactName" className={getLabelClassName('contactName')}>
+                Nombre de contacto *
+              </Label>
+              <Input
+                id="contactName"
+                value={formData.contactName}
+                onChange={(e) => updateFormData('contactName', e.target.value)}
+                placeholder="Tu nombre completo"
+                className={getInputClassName('contactName')}
+                required
+              />
+            </div>
+            <div>
+              <Label htmlFor="email" className={getLabelClassName('email')}>
+                Email *
+              </Label>
+              <Input
+                id="email"
+                type="email"
+                value={formData.email}
+                onChange={(e) => updateFormData('email', e.target.value)}
+                placeholder="tu@empresa.com"
+                className={getInputClassName('email')}
+                required
+              />
+            </div>
+            <div>
+              <Label htmlFor="phone" className={getLabelClassName('phone')}>
+                Teléfono *
+              </Label>
+              <Input
+                id="phone"
+                type="tel"
+                value={formData.phone}
+                onChange={(e) => updateFormData('phone', e.target.value)}
+                placeholder="+56 9 1234 5678"
+                className={getInputClassName('phone')}
+                required
+              />
+            </div>
+            <div>
+              <Label htmlFor="industry" className={getLabelClassName('industry')}>
+                Industria/Sector *
+              </Label>
+              <Select 
+                value={formData.industry} 
+                onValueChange={(value) => updateFormData('industry', value)}
+              >
+                <SelectTrigger className={getInputClassName('industry')}>
+                  <SelectValue placeholder="Selecciona tu industria" />
+                </SelectTrigger>
+                <SelectContent>
                   {industryOptions.map((industry) => (
-                    <div key={industry} className="flex items-center space-x-2">
-                      <RadioGroupItem value={industry} id={industry} />
-                      <Label htmlFor={industry}>{industry}</Label>
-                    </div>
+                    <SelectItem key={industry} value={industry}>
+                      {industry}
+                    </SelectItem>
                   ))}
-                </RadioGroup>
-              </div>
+                </SelectContent>
+              </Select>
             </div>
           </div>
         );
 
       case 2:
         return (
-          <div className="space-y-4">
+          <div className="space-y-6">
             <div>
-              <Label>Tipo de proyecto *</Label>
-              <RadioGroup
-                value={formData.project_type}
-                onValueChange={(value) => handleInputChange('project_type', value)}
-                className="mt-2"
+              <Label htmlFor="projectType" className={getLabelClassName('projectType')}>
+                Tipo de proyecto *
+              </Label>
+              <Select 
+                value={formData.projectType} 
+                onValueChange={(value) => updateFormData('projectType', value)}
               >
-                <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="website_corporativo" id="website_corporativo" />
-                  <Label htmlFor="website_corporativo">Sitio web corporativo</Label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="ecommerce" id="ecommerce" />
-                  <Label htmlFor="ecommerce">Tienda online / E-commerce</Label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="landing_page" id="landing_page" />
-                  <Label htmlFor="landing_page">Landing page</Label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="blog" id="blog" />
-                  <Label htmlFor="blog">Blog / Portal de contenidos</Label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="aplicacion_web" id="aplicacion_web" />
-                  <Label htmlFor="aplicacion_web">Aplicación web</Label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="otro" id="otro" />
-                  <Label htmlFor="otro">Otro</Label>
-                </div>
-              </RadioGroup>
+                <SelectTrigger className={getInputClassName('projectType')}>
+                  <SelectValue placeholder="Selecciona una opción" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="nuevo">Sitio web nuevo</SelectItem>
+                  <SelectItem value="rediseno">Rediseño de sitio existente</SelectItem>
+                  <SelectItem value="ecommerce">Tienda online/E-commerce</SelectItem>
+                  <SelectItem value="landing">Landing page</SelectItem>
+                  <SelectItem value="blog">Blog/Portal de contenidos</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            
+            <div>
+              <Label htmlFor="projectDescription" className={getLabelClassName('projectDescription')}>
+                Descripción del proyecto *
+              </Label>
+              <Textarea
+                id="projectDescription"
+                value={formData.projectDescription}
+                onChange={(e) => updateFormData('projectDescription', e.target.value)}
+                placeholder="Describe en detalle qué necesitas..."
+                rows={4}
+                className={getInputClassName('projectDescription')}
+                required
+              />
             </div>
 
             <div>
-              <Label>Presupuesto aproximado *</Label>
-              <RadioGroup
-                value={formData.budget}
-                onValueChange={(value) => handleInputChange('budget', value)}
-                className="mt-2"
-              >
-                <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="menos_500k" id="menos_500k" />
-                  <Label htmlFor="menos_500k">Menos de $500.000 CLP</Label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="500k_1m" id="500k_1m" />
-                  <Label htmlFor="500k_1m">$500.000 - $1.000.000 CLP</Label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="1m_2m" id="1m_2m" />
-                  <Label htmlFor="1m_2m">$1.000.000 - $2.000.000 CLP</Label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="mas_2m" id="mas_2m" />
-                  <Label htmlFor="mas_2m">Más de $2.000.000 CLP</Label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="a_consultar" id="a_consultar" />
-                  <Label htmlFor="a_consultar">A consultar</Label>
-                </div>
-              </RadioGroup>
+              <Label className={getLabelClassName('pages')}>
+                Páginas requeridas * (mínimo 4)
+              </Label>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 mt-2">
+                {pagesOptions.map((page) => (
+                  <div key={page} className="flex items-center space-x-2">
+                    <Checkbox
+                      id={page}
+                      checked={(formData.pages || []).includes(page)}
+                      onCheckedChange={(checked) => handlePageToggle(page, checked as boolean)}
+                    />
+                    <Label htmlFor={page} className="text-sm cursor-pointer">
+                      {page}
+                    </Label>
+                  </div>
+                ))}
+              </div>
             </div>
 
             <div>
-              <Label>Tiempo estimado de entrega *</Label>
-              <RadioGroup
-                value={formData.timeline}
-                onValueChange={(value) => handleInputChange('timeline', value)}
-                className="mt-2"
+              <Label>
+                Funcionalidades (opcional)
+              </Label>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 mt-2">
+                {featuresOptions.map((feature) => (
+                  <div key={feature} className="flex items-center space-x-2">
+                    <Checkbox
+                      id={feature}
+                      checked={(formData.features || []).includes(feature)}
+                      onCheckedChange={(checked) => handleFeatureToggle(feature, checked as boolean)}
+                    />
+                    <Label htmlFor={feature} className="text-sm cursor-pointer">
+                      {feature}
+                    </Label>
+                  </div>
+                ))}
+              </div>
+            </div>
+            
+            <div>
+              <Label htmlFor="timeline" className={getLabelClassName('timeline')}>
+                Timeline esperado *
+              </Label>
+              <Select 
+                value={formData.timeline} 
+                onValueChange={(value) => updateFormData('timeline', value)}
               >
-                <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="1_2_semanas" id="1_2_semanas" />
-                  <Label htmlFor="1_2_semanas">1-2 semanas</Label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="3_4_semanas" id="3_4_semanas" />
-                  <Label htmlFor="3_4_semanas">3-4 semanas</Label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="1_2_meses" id="1_2_meses" />
-                  <Label htmlFor="1_2_meses">1-2 meses</Label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="mas_2_meses" id="mas_2_meses" />
-                  <Label htmlFor="mas_2_meses">Más de 2 meses</Label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="flexible" id="flexible" />
-                  <Label htmlFor="flexible">Flexible</Label>
-                </div>
-              </RadioGroup>
+                <SelectTrigger className={getInputClassName('timeline')}>
+                  <SelectValue placeholder="Selecciona un plazo" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="1-2-semanas">1-2 semanas</SelectItem>
+                  <SelectItem value="1-mes">1 mes</SelectItem>
+                  <SelectItem value="2-3-meses">2-3 meses</SelectItem>
+                  <SelectItem value="3-6-meses">3-6 meses</SelectItem>
+                  <SelectItem value="mas-6-meses">Más de 6 meses</SelectItem>
+                  <SelectItem value="flexible">Flexible</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
           </div>
         );
@@ -429,46 +660,52 @@ const BriefForm = () => {
         return (
           <div className="space-y-4">
             <div>
-              <Label htmlFor="description">Descripción del proyecto *</Label>
+              <Label htmlFor="budget" className={getLabelClassName('budget')}>
+                Presupuesto disponible *
+              </Label>
+              <Select 
+                value={formData.budget} 
+                onValueChange={(value) => updateFormData('budget', value)}
+              >
+                <SelectTrigger className={getInputClassName('budget')}>
+                  <SelectValue placeholder="Selecciona un rango" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="menos-300000">Menos de $300.000 CLP</SelectItem>
+                  <SelectItem value="300000-500000">Entre $300.000 - $500.000 CLP</SelectItem>
+                  <SelectItem value="500000-800000">Entre $500.000 - $800.000 CLP</SelectItem>
+                  <SelectItem value="800000-1000000">Entre $800.000 - $1.000.000 CLP</SelectItem>
+                  <SelectItem value="mas-1000000">Más de $1.000.000 CLP</SelectItem>
+                  <SelectItem value="por-definir">Por definir</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label htmlFor="mainGoals" className={getLabelClassName('mainGoals')}>
+                Objetivos principales del sitio web *
+              </Label>
               <Textarea
-                id="description"
-                value={formData.description}
-                onChange={(e) => handleInputChange('description', e.target.value)}
-                placeholder="Describe detalladamente lo que necesitas para tu proyecto web..."
-                className="min-h-[120px]"
+                id="mainGoals"
+                value={formData.mainGoals}
+                onChange={(e) => updateFormData('mainGoals', e.target.value)}
+                placeholder="¿Qué esperas lograr con el sitio web? (generar leads, ventas, branding, etc.)"
+                rows={3}
+                className={getInputClassName('mainGoals')}
                 required
               />
             </div>
             <div>
-              <Label htmlFor="objectives">Objetivos principales *</Label>
+              <Label htmlFor="targetAudience" className={getLabelClassName('targetAudience')}>
+                Público objetivo *
+              </Label>
               <Textarea
-                id="objectives"
-                value={formData.objectives}
-                onChange={(e) => handleInputChange('objectives', e.target.value)}
-                placeholder="¿Qué esperas lograr con este sitio web? ¿Cuáles son tus metas principales?"
-                className="min-h-[100px]"
+                id="targetAudience"
+                value={formData.targetAudience}
+                onChange={(e) => updateFormData('targetAudience', e.target.value)}
+                placeholder="Describe a tu audiencia ideal (edad, intereses, comportamiento, etc.)"
+                rows={3}
+                className={getInputClassName('targetAudience')}
                 required
-              />
-            </div>
-            <div>
-              <Label htmlFor="target_audience">Público objetivo *</Label>
-              <Textarea
-                id="target_audience"
-                value={formData.target_audience}
-                onChange={(e) => handleInputChange('target_audience', e.target.value)}
-                placeholder="Describe a quién está dirigido tu sitio web (edad, intereses, ubicación, etc.)"
-                className="min-h-[80px]"
-                required
-              />
-            </div>
-            <div>
-              <Label htmlFor="competitors">Competencia o referencias</Label>
-              <Textarea
-                id="competitors"
-                value={formData.competitors}
-                onChange={(e) => handleInputChange('competitors', e.target.value)}
-                placeholder="Menciona sitios web de la competencia o que te gusten como referencia"
-                className="min-h-[80px]"
               />
             </div>
           </div>
@@ -478,104 +715,212 @@ const BriefForm = () => {
         return (
           <div className="space-y-4">
             <div>
-              <Label>Páginas que necesitas *</Label>
-              <p className="text-sm text-muted-foreground mb-3">
-                Selecciona todas las páginas que quieres incluir en tu sitio web
-              </p>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                {pageOptions.map((page) => (
-                  <div key={page} className="flex items-center space-x-2">
-                    <Checkbox
-                      id={page}
-                      checked={formData.pages.includes(page)}
-                      onCheckedChange={(checked) => 
-                        handleArrayChange('pages', page, checked as boolean)
-                      }
-                    />
-                    <Label htmlFor={page} className="text-sm">{page}</Label>
-                  </div>
-                ))}
-              </div>
+              <Label htmlFor="existingWebsite" className={getLabelClassName('existingWebsite')}>
+                Sitio web actual *
+              </Label>
+              <Input
+                id="existingWebsite"
+                type="url"
+                value={formData.existingWebsite}
+                onChange={(e) => updateFormData('existingWebsite', e.target.value)}
+                placeholder="https://www.tusitio.com (o escribe 'No tengo' si no tienes)"
+                className={getInputClassName('existingWebsite')}
+                required
+              />
             </div>
-
             <div>
-              <Label>Funcionalidades especiales</Label>
-              <p className="text-sm text-muted-foreground mb-3">
-                Selecciona las funcionalidades adicionales que necesitas
-              </p>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                {featureOptions.map((feature) => (
-                  <div key={feature} className="flex items-center space-x-2">
-                    <Checkbox
-                      id={feature}
-                      checked={formData.features.includes(feature)}
-                      onCheckedChange={(checked) => 
-                        handleArrayChange('features', feature, checked as boolean)
-                      }
-                    />
-                    <Label htmlFor={feature} className="text-sm">{feature}</Label>
-                  </div>
-                ))}
-              </div>
+              <Label htmlFor="competitorWebsites" className={getLabelClassName('competitorWebsites')}>
+                Sitios web de competencia *
+              </Label>
+              <Textarea
+                id="competitorWebsites"
+                value={formData.competitorWebsites}
+                onChange={(e) => updateFormData('competitorWebsites', e.target.value)}
+                placeholder="URLs de sitios que te gustan o son tu competencia"
+                rows={3}
+                className={getInputClassName('competitorWebsites')}
+                required
+              />
+            </div>
+            <div>
+              <Label htmlFor="designPreferences" className={getLabelClassName('designPreferences')}>
+                Preferencias de diseño *
+              </Label>
+              <Textarea
+                id="designPreferences"
+                value={formData.designPreferences}
+                onChange={(e) => updateFormData('designPreferences', e.target.value)}
+                placeholder="Colores, estilo, elementos que te gustan o no..."
+                rows={3}
+                className={getInputClassName('designPreferences')}
+                required
+              />
+            </div>
+            <div>
+              <Label htmlFor="additionalNotes" className={getLabelClassName('additionalNotes')}>
+                Notas adicionales *
+              </Label>
+              <Textarea
+                id="additionalNotes"
+                value={formData.additionalNotes}
+                onChange={(e) => updateFormData('additionalNotes', e.target.value)}
+                placeholder="Cualquier información adicional relevante"
+                rows={3}
+                className={getInputClassName('additionalNotes')}
+                required
+              />
             </div>
           </div>
         );
 
       case 5:
         return (
-          <div className="space-y-4">
-            <div>
-              <Label htmlFor="design_preferences">Preferencias de diseño</Label>
-              <Textarea
-                id="design_preferences"
-                value={formData.design_preferences}
-                onChange={(e) => handleInputChange('design_preferences', e.target.value)}
-                placeholder="Describe el estilo que te gusta (moderno, clásico, minimalista, etc.), colores preferidos, tipografías..."
-                className="min-h-[100px]"
-              />
+          <div className="space-y-6">
+            <div className="text-center">
+              <h3 className="text-2xl font-medium mb-2">Resumen de tu Brief</h3>
+              <p className="text-muted-foreground mb-8">
+                Revisa toda la información antes de enviar. Recibirás una respuesta en las próximas 24 horas.
+              </p>
             </div>
-
-            <div>
-              <Label>¿Tienes el contenido listo?</Label>
-              <RadioGroup
-                value={formData.content_ready}
-                onValueChange={(value) => handleInputChange('content_ready', value)}
-                className="mt-2"
-              >
-                <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="todo_listo" id="todo_listo" />
-                  <Label htmlFor="todo_listo">Sí, tengo todo el contenido listo</Label>
+            
+            <div className="space-y-6">
+              {/* Información de la empresa */}
+              <div className="border rounded-lg p-6 bg-card">
+                <div className="flex items-center mb-4">
+                  <Building className="w-5 h-5 text-primary mr-2" />
+                  <h4 className="text-lg font-medium">Información de la empresa</h4>
                 </div>
-                <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="parcialmente" id="parcialmente" />
-                  <Label htmlFor="parcialmente">Tengo parte del contenido</Label>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <span className="text-sm font-medium text-muted-foreground">Empresa:</span>
+                    <p className="text-sm mt-1">{formData.companyName || 'No especificado'}</p>
+                  </div>
+                  <div>
+                    <span className="text-sm font-medium text-muted-foreground">Contacto:</span>
+                    <p className="text-sm mt-1">{formData.contactName || 'No especificado'}</p>
+                  </div>
+                  <div>
+                    <span className="text-sm font-medium text-muted-foreground">Email:</span>
+                    <p className="text-sm mt-1">{formData.email || 'No especificado'}</p>
+                  </div>
+                  <div>
+                    <span className="text-sm font-medium text-muted-foreground">Teléfono:</span>
+                    <p className="text-sm mt-1">{formData.phone || 'No especificado'}</p>
+                  </div>
+                  <div className="md:col-span-2">
+                    <span className="text-sm font-medium text-muted-foreground">Industria:</span>
+                    <p className="text-sm mt-1">{formData.industry || 'No especificado'}</p>
+                  </div>
                 </div>
-                <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="necesito_ayuda" id="necesito_ayuda" />
-                  <Label htmlFor="necesito_ayuda">Necesito ayuda con el contenido</Label>
+              </div>
+
+              {/* Detalles del proyecto */}
+              <div className="border rounded-lg p-6 bg-card">
+                <div className="flex items-center mb-4">
+                  <Briefcase className="w-5 h-5 text-primary mr-2" />
+                  <h4 className="text-lg font-medium">Detalles del proyecto</h4>
                 </div>
-              </RadioGroup>
-            </div>
+                <div className="space-y-4">
+                  <div>
+                    <span className="text-sm font-medium text-muted-foreground">Tipo de proyecto:</span>
+                    <p className="text-sm mt-1">{formData.projectType || 'No especificado'}</p>
+                  </div>
+                  <div>
+                    <span className="text-sm font-medium text-muted-foreground">Descripción:</span>
+                    <p className="text-sm mt-1">{formData.projectDescription || 'No especificado'}</p>
+                  </div>
+                  <div>
+                    <span className="text-sm font-medium text-muted-foreground">Timeline:</span>
+                    <p className="text-sm mt-1">{formData.timeline || 'No especificado'}</p>
+                  </div>
+                  <div>
+                    <span className="text-sm font-medium text-muted-foreground">Páginas requeridas:</span>
+                    <div className="mt-1">
+                      {(formData.pages || []).length > 0 ? (
+                        <div className="flex flex-wrap gap-2">
+                          {(formData.pages || []).map((page, index) => (
+                            <span
+                              key={index}
+                              className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-primary/10 text-primary"
+                            >
+                              {page}
+                            </span>
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="text-sm text-muted-foreground">Ninguna página seleccionada</p>
+                      )}
+                    </div>
+                  </div>
+                  <div>
+                    <span className="text-sm font-medium text-muted-foreground">Funcionalidades requeridas:</span>
+                    <div className="mt-1">
+                      {(formData.features || []).length > 0 ? (
+                        <div className="flex flex-wrap gap-2">
+                          {(formData.features || []).map((feature, index) => (
+                            <span
+                              key={index}
+                              className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-primary/10 text-primary"
+                            >
+                              {feature}
+                            </span>
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="text-sm text-muted-foreground">Ninguna funcionalidad seleccionada</p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
 
-            <div>
-              <Label htmlFor="hosting_domain">Hosting y dominio</Label>
-              <Input
-                id="hosting_domain"
-                value={formData.hosting_domain}
-                onChange={(e) => handleInputChange('hosting_domain', e.target.value)}
-                placeholder="¿Tienes dominio? ¿Dónde quieres alojar el sitio?"
-              />
-            </div>
+              {/* Presupuesto y objetivos */}
+              <div className="border rounded-lg p-6 bg-card">
+                <div className="flex items-center mb-4">
+                  <DollarSign className="w-5 h-5 text-primary mr-2" />
+                  <h4 className="text-lg font-medium">Presupuesto y objetivos</h4>
+                </div>
+                <div className="space-y-4">
+                  <div>
+                    <span className="text-sm font-medium text-muted-foreground">Presupuesto disponible:</span>
+                    <p className="text-sm mt-1">{getBudgetLabel(formData.budget) || 'No especificado'}</p>
+                  </div>
+                  <div>
+                    <span className="text-sm font-medium text-muted-foreground">Objetivos principales:</span>
+                    <p className="text-sm mt-1">{formData.mainGoals || 'No especificado'}</p>
+                  </div>
+                  <div>
+                    <span className="text-sm font-medium text-muted-foreground">Público objetivo:</span>
+                    <p className="text-sm mt-1">{formData.targetAudience || 'No especificado'}</p>
+                  </div>
+                </div>
+              </div>
 
-            <div>
-              <Label htmlFor="additional_comments">Comentarios adicionales</Label>
-              <Textarea
-                id="additional_comments"
-                value={formData.additional_comments}
-                onChange={(e) => handleInputChange('additional_comments', e.target.value)}
-                placeholder="Cualquier información adicional que consideres importante..."
-                className="min-h-[100px]"
-              />
+              {/* Información técnica */}
+              <div className="border rounded-lg p-6 bg-card">
+                <div className="flex items-center mb-4">
+                  <Settings className="w-5 h-5 text-primary mr-2" />
+                  <h4 className="text-lg font-medium">Información técnica</h4>
+                </div>
+                <div className="space-y-4">
+                  <div>
+                    <span className="text-sm font-medium text-muted-foreground">Sitio web actual:</span>
+                    <p className="text-sm mt-1">{formData.existingWebsite || 'No tiene sitio web actual'}</p>
+                  </div>
+                  <div>
+                    <span className="text-sm font-medium text-muted-foreground">Sitios de competencia/referencia:</span>
+                    <p className="text-sm mt-1">{formData.competitorWebsites || 'No especificado'}</p>
+                  </div>
+                  <div>
+                    <span className="text-sm font-medium text-muted-foreground">Preferencias de diseño:</span>
+                    <p className="text-sm mt-1">{formData.designPreferences || 'No especificado'}</p>
+                  </div>
+                  <div>
+                    <span className="text-sm font-medium text-muted-foreground">Notas adicionales:</span>
+                    <p className="text-sm mt-1">{formData.additionalNotes || 'Ninguna nota adicional'}</p>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         );
@@ -585,97 +930,76 @@ const BriefForm = () => {
     }
   };
 
+  const getStepTitle = () => {
+    switch (currentStep) {
+      case 1: return "Información de la empresa";
+      case 2: return "Detalles del proyecto";
+      case 3: return "Presupuesto y objetivos";
+      case 4: return "Información técnica";
+      case 5: return "Resumen y envío";
+      default: return "";
+    }
+  };
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 py-8">
-      <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">
-            Brief para Proyecto Web
-          </h1>
-          <p className="text-gray-600">
-            Cuéntanos sobre tu proyecto para crear una propuesta personalizada
+    <div className="w-full max-w-4xl mx-auto space-y-4">
+      <Card className="bg-accent-900">
+        <CardHeader>
+          <CardTitle className="text-xl font-medium">{getStepTitle()}</CardTitle>
+          <Progress value={(currentStep / totalSteps) * 100} className="w-full" />
+          <p className="text-sm text-muted-foreground">
+            Paso {currentStep} de {totalSteps} • Guardado automático activado
           </p>
-        </div>
-
-        {/* Progress bar */}
-        <div className="mb-8">
-          <div className="flex justify-between items-center mb-2">
-            <span className="text-sm font-medium text-gray-700">
-              Paso {currentStep} de 5
-            </span>
-            <span className="text-sm text-gray-500">
-              {Math.round((currentStep / 5) * 100)}%
-            </span>
-          </div>
-          <div className="w-full bg-gray-200 rounded-full h-2">
-            <div 
-              className="bg-blue-600 h-2 rounded-full transition-all duration-300 ease-in-out"
-              style={{ width: `${(currentStep / 5) * 100}%` }}
-            ></div>
-          </div>
-        </div>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>
-              {currentStep === 1 && "Información de contacto"}
-              {currentStep === 2 && "Detalles del proyecto"}
-              {currentStep === 3 && "Descripción y objetivos"}
-              {currentStep === 4 && "Estructura y funcionalidades"}
-              {currentStep === 5 && "Detalles finales"}
-            </CardTitle>
-            <CardDescription>
-              {currentStep === 1 && "Comencemos con tus datos de contacto"}
-              {currentStep === 2 && "Cuéntanos qué tipo de proyecto necesitas"}
-              {currentStep === 3 && "Describe tu proyecto en detalle"}
-              {currentStep === 4 && "Define la estructura de tu sitio web"}
-              {currentStep === 5 && "Últimos detalles para completar tu brief"}
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            {renderStep()}
+        </CardHeader>
+        
+        <CardContent>
+          {renderStep()}
+          
+          <div className="flex justify-between mt-8">
+            <Button
+              onClick={prevStep}
+              disabled={currentStep === 1}
+              variant="outline"
+            >
+              <ChevronLeft className="w-4 h-4 mr-2" />
+              Anterior
+            </Button>
             
-            <div className="flex justify-between mt-8">
+            {currentStep === totalSteps ? (
               <Button
-                variant="outline"
-                onClick={prevStep}
-                disabled={currentStep === 1}
-                className="flex items-center gap-2"
+                onClick={submitForm}
+                disabled={isSubmitting}
+                className="ml-auto"
+                size="lg"
               >
-                <ArrowLeft className="w-4 h-4" />
-                Anterior
+                {isSubmitting ? (
+                  <div className="flex items-center">
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                    {submissionStep || "Procesando..."}
+                  </div>
+                ) : (
+                  <>
+                    <Send className="w-4 h-4 mr-2" />
+                    Enviar Brief
+                  </>
+                )}
               </Button>
-              
-              {currentStep < 5 ? (
-                <Button
-                  onClick={nextStep}
-                  className="flex items-center gap-2"
-                >
-                  Siguiente
-                  <ArrowRight className="w-4 h-4" />
-                </Button>
-              ) : (
-                <Button
-                  onClick={submitForm}
-                  disabled={isSubmitting}
-                  className="flex items-center gap-2"
-                >
-                  {isSubmitting ? (
-                    <>
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                      Enviando...
-                    </>
-                  ) : (
-                    <>
-                      <Send className="w-4 h-4" />
-                      Enviar Brief
-                    </>
-                  )}
-                </Button>
-              )}
-            </div>
-          </CardContent>
-        </Card>
+            ) : (
+              <Button onClick={nextStep}>
+                Siguiente
+                <ChevronRight className="w-4 h-4 ml-2" />
+              </Button>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Auto-save button centered */}
+      <div className="flex justify-center">
+        <Button onClick={saveProgress} variant="outline" size="sm">
+          <Save className="w-4 h-4 mr-2" />
+          Guardado automático
+        </Button>
       </div>
     </div>
   );
