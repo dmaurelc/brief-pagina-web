@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from 'react';
 import { useUser } from '@clerk/clerk-react';
 import { supabase } from '@/integrations/supabase/client';
@@ -18,6 +17,7 @@ import {
   PointerSensor,
   useSensor,
   useSensors,
+  useDroppable,
 } from '@dnd-kit/core';
 import {
   SortableContext,
@@ -30,6 +30,51 @@ import { CSS } from '@dnd-kit/utilities';
 import { useToast } from '@/hooks/use-toast';
 
 type Brief = Tables<'briefs'>;
+
+// Componente para columnas como zonas de drop
+const DroppableColumn = ({ 
+  id, 
+  title, 
+  icon, 
+  color, 
+  headerColor, 
+  count, 
+  children 
+}: {
+  id: string;
+  title: string;
+  icon: React.ReactNode;
+  color: string;
+  headerColor: string;
+  count: number;
+  children: React.ReactNode;
+}) => {
+  const { setNodeRef, isOver } = useDroppable({
+    id: id,
+  });
+
+  return (
+    <Card 
+      ref={setNodeRef}
+      className={`${color} min-h-[600px] border-2 border-dashed transition-colors ${
+        isOver ? 'border-primary bg-primary/5' : ''
+      }`}
+    >
+      <CardHeader className={`${headerColor} text-white rounded-t-lg`}>
+        <CardTitle className="flex items-center gap-2 text-white">
+          {icon}
+          {title}
+          <Badge variant="secondary" className="bg-white/20 text-white border-white/30">
+            {count}
+          </Badge>
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="p-4 space-y-3">
+        {children}
+      </CardContent>
+    </Card>
+  );
+};
 
 // Componente para tarjetas drag-and-drop
 const DraggableBriefCard = ({ brief, onViewDetail }: { brief: Brief; onViewDetail: (brief: Brief) => void }) => {
@@ -252,7 +297,7 @@ const AdminDashboard = () => {
     completed: briefs.filter(b => b.status === 'completed')
   } : null;
 
-  // Configuración de las columnas del dashboard
+  // Configuración de las columnas del dashboard con nombres actualizados
   const columns = [
     {
       id: 'pending',
@@ -264,7 +309,7 @@ const AdminDashboard = () => {
     },
     {
       id: 'in_review',
-      title: 'En Proceso',
+      title: 'Proceso',
       icon: <FileText className="w-5 h-5" />,
       color: 'bg-accent-800 border-accent-700',
       headerColor: 'bg-blue-600',
@@ -272,7 +317,7 @@ const AdminDashboard = () => {
     },
     {
       id: 'quote_sent',
-      title: 'Propuestas Enviadas',
+      title: 'Enviadas',
       icon: <Send className="w-5 h-5" />,
       color: 'bg-accent-800 border-accent-700',
       headerColor: 'bg-green-600',
@@ -430,32 +475,28 @@ const AdminDashboard = () => {
                 items={categorizedBriefs?.[column.id as keyof typeof categorizedBriefs]?.map(b => b.id) || []}
                 strategy={verticalListSortingStrategy}
               >
-                <Card className={`${column.color} min-h-[600px] border-2 border-dashed transition-colors`}>
-                  <CardHeader className={`${column.headerColor} text-white rounded-t-lg`}>
-                    <CardTitle className="flex items-center gap-2 text-white">
-                      {column.icon}
-                      {column.title}
-                      <Badge variant="secondary" className="bg-white/20 text-white border-white/30">
-                        {column.count}
-                      </Badge>
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="p-4 space-y-3">
-                    {categorizedBriefs && categorizedBriefs[column.id as keyof typeof categorizedBriefs].map((brief) => (
-                      <DraggableBriefCard
-                        key={brief.id}
-                        brief={brief}
-                        onViewDetail={handleViewDetail}
-                      />
-                    ))}
-                    
-                    {categorizedBriefs && categorizedBriefs[column.id as keyof typeof categorizedBriefs].length === 0 && (
-                      <div className="text-center py-8">
-                        <p className="text-sm text-muted-foreground">Arrastra elementos aquí</p>
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
+                <DroppableColumn
+                  id={column.id}
+                  title={column.title}
+                  icon={column.icon}
+                  color={column.color}
+                  headerColor={column.headerColor}
+                  count={column.count}
+                >
+                  {categorizedBriefs && categorizedBriefs[column.id as keyof typeof categorizedBriefs].map((brief) => (
+                    <DraggableBriefCard
+                      key={brief.id}
+                      brief={brief}
+                      onViewDetail={handleViewDetail}
+                    />
+                  ))}
+                  
+                  {categorizedBriefs && categorizedBriefs[column.id as keyof typeof categorizedBriefs].length === 0 && (
+                    <div className="text-center py-8">
+                      <p className="text-sm text-muted-foreground">Arrastra elementos aquí</p>
+                    </div>
+                  )}
+                </DroppableColumn>
               </SortableContext>
             ))}
           </div>
