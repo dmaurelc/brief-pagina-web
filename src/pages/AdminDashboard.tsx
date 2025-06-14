@@ -5,7 +5,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Eye, ArrowLeft, Shield, AlertCircle, FileText, Clock, CheckCircle, Send } from 'lucide-react';
+import { Eye, ArrowLeft, Shield, AlertCircle, FileText, Clock, CheckCircle, Send, ChevronDown, MoreVertical } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Tables } from '@/integrations/supabase/types';
 import BriefDetailModal from '@/components/BriefDetailModal';
@@ -28,8 +28,22 @@ import {
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { useToast } from '@/hooks/use-toast';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 
 type Brief = Tables<'briefs'>;
+
+// Configuración de estados disponibles
+const STATUS_CONFIG = {
+  pending: { label: 'Pendiente', color: 'bg-yellow-500', icon: Clock },
+  in_review: { label: 'En Proceso', color: 'bg-blue-500', icon: FileText },
+  quote_sent: { label: 'Enviada', color: 'bg-green-500', icon: Send },
+  completed: { label: 'Completado', color: 'bg-purple-500', icon: CheckCircle }
+} as const;
 
 // Componente para columnas como zonas de drop
 const DroppableColumn = ({ 
@@ -76,8 +90,16 @@ const DroppableColumn = ({
   );
 };
 
-// Componente para tarjetas drag-and-drop
-const DraggableBriefCard = ({ brief, onViewDetail }: { brief: Brief; onViewDetail: (brief: Brief) => void }) => {
+// Componente mejorado para tarjetas drag-and-drop con método alternativo
+const DraggableBriefCard = ({ 
+  brief, 
+  onViewDetail, 
+  onStatusChange 
+}: { 
+  brief: Brief; 
+  onViewDetail: (brief: Brief) => void;
+  onStatusChange: (briefId: string, newStatus: string) => void;
+}) => {
   const {
     attributes,
     listeners,
@@ -100,6 +122,11 @@ const DraggableBriefCard = ({ brief, onViewDetail }: { brief: Brief; onViewDetai
     });
   };
 
+  const currentStatus = brief.status || 'pending';
+  const availableStatuses = Object.entries(STATUS_CONFIG).filter(
+    ([status]) => status !== currentStatus
+  );
+
   return (
     <Card 
       ref={setNodeRef} 
@@ -112,8 +139,41 @@ const DraggableBriefCard = ({ brief, onViewDetail }: { brief: Brief; onViewDetai
     >
       <CardContent className="p-4">
         <div className="space-y-2">
-          <h3 className="font-semibold text-sm text-foreground">{brief.company_name}</h3>
+          <div className="flex justify-between items-start">
+            <h3 className="font-semibold text-sm text-foreground flex-1">{brief.company_name}</h3>
+            
+            {/* Dropdown para cambio de estado - Método alternativo */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button 
+                  size="sm" 
+                  variant="ghost" 
+                  className="h-6 w-6 p-0 hover:bg-accent-700"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <MoreVertical className="w-3 h-3" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="bg-popover border-border">
+                {availableStatuses.map(([status, config]) => (
+                  <DropdownMenuItem
+                    key={status}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onStatusChange(brief.id, status);
+                    }}
+                    className="cursor-pointer hover:bg-accent"
+                  >
+                    <config.icon className="w-3 h-3 mr-2" />
+                    Cambiar a {config.label}
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+          
           <p className="text-xs text-muted-foreground">{brief.contact_name}</p>
+          
           <div className="flex justify-between items-center">
             <span className="text-xs text-muted-foreground">
               {formatDate(brief.created_at)}
@@ -131,8 +191,9 @@ const DraggableBriefCard = ({ brief, onViewDetail }: { brief: Brief; onViewDetai
               Ver
             </Button>
           </div>
+          
           <div className="text-xs text-muted-foreground">
-            <span className="font-medium">Tipo:</span> {brief.project_type}
+            <span className="font-medium">Tipo:</span> {brief.project_type || 'No especificado'}
           </div>
           <div className="text-xs text-muted-foreground">
             <span className="font-medium">Presupuesto:</span> {brief.budget}
@@ -220,107 +281,98 @@ const AdminDashboard = () => {
     enabled: isAdmin === true,
   });
 
-  // Mutación mejorada con mejor manejo de errores y validación
+  // Mutación mejorada con actualización optimista
   const updateBriefStatusMutation = useMutation({
     mutationFn: async ({ briefId, newStatus }: { briefId: string; newStatus: string }) => {
-      console.log('=== INICIANDO ACTUALIZACIÓN ===');
-      console.log('Brief ID:', briefId);
-      console.log('Nuevo estado:', newStatus);
+      console.log('🚀 Iniciando actualización de estado:', { briefId, newStatus });
       
-      // Validar que el nuevo estado sea válido
-      const validStatuses = ['pending', 'in_review', 'quote_sent', 'completed', 'cancelled'];
-      if (!validStatuses.includes(newStatus)) {
-        const errorMsg = `Estado inválido: ${newStatus}. Estados válidos: ${validStatuses.join(', ')}`;
-        console.error(errorMsg);
-        throw new Error(errorMsg);
-      }
-
-      // Verificar que el brief existe en la data local
+      // Validar que el brief existe en la data local
       const currentBrief = briefs?.find(b => b.id === briefId);
       if (!currentBrief) {
-        const errorMsg = `Brief no encontrado en data local: ${briefId}`;
-        console.error(errorMsg);
-        throw new Error(errorMsg);
+        throw new Error(`Brief no encontrado: ${briefId}`);
       }
 
-      console.log('Brief encontrado:', currentBrief.company_name);
-      console.log('Estado actual:', currentBrief.status);
-
-      // Intentar la actualización con manejo de errores mejorado
-      try {
-        console.log('Ejecutando query de actualización...');
-        
-        const { data, error, count } = await supabase
-          .from('briefs')
-          .update({ 
-            status: newStatus as any,
-            status_updated_at: new Date().toISOString()
-          })
-          .eq('id', briefId)
-          .select('*');
-
-        console.log('Respuesta de Supabase:');
-        console.log('- Data:', data);
-        console.log('- Error:', error);
-        console.log('- Count:', count);
-
-        if (error) {
-          console.error('Error de Supabase detallado:', {
-            message: error.message,
-            details: error.details,
-            hint: error.hint,
-            code: error.code
-          });
-          
-          // Mejorar mensajes de error específicos
-          if (error.code === 'PGRST116') {
-            throw new Error('No se encontró el presupuesto para actualizar. Es posible que haya sido eliminado.');
-          } else if (error.code === '42501') {
-            throw new Error('Sin permisos para actualizar este presupuesto. Contacte al administrador.');
-          } else {
-            throw new Error(`Error de base de datos: ${error.message}`);
-          }
-        }
-
-        if (!data || data.length === 0) {
-          console.error('La actualización no devolvió datos');
-          throw new Error('La actualización se ejecutó pero no se obtuvieron datos. El presupuesto podría no existir.');
-        }
-
-        const updatedBrief = data[0];
-        console.log('Brief actualizado exitosamente:', updatedBrief);
-        return updatedBrief;
-
-      } catch (supabaseError) {
-        console.error('Error en la operación de Supabase:', supabaseError);
-        throw supabaseError;
+      // Validar que el nuevo estado es válido
+      const validStatuses = ['pending', 'in_review', 'quote_sent', 'completed'];
+      if (!validStatuses.includes(newStatus)) {
+        throw new Error(`Estado inválido: ${newStatus}`);
       }
+
+      console.log('📝 Actualizando brief:', currentBrief.company_name);
+
+      // Ejecutar la actualización de forma simplificada
+      const { error, count } = await supabase
+        .from('briefs')
+        .update({ 
+          status: newStatus as any,
+          status_updated_at: new Date().toISOString()
+        })
+        .eq('id', briefId);
+
+      if (error) {
+        console.error('❌ Error en Supabase:', error);
+        throw new Error(`Error de base de datos: ${error.message}`);
+      }
+
+      console.log('✅ Actualización completada, registros afectados:', count);
+      
+      return { briefId, newStatus, company_name: currentBrief.company_name };
+    },
+    onMutate: async ({ briefId, newStatus }) => {
+      // Cancelar queries existentes para evitar conflictos
+      await queryClient.cancelQueries({ queryKey: ['admin-briefs'] });
+
+      // Obtener el snapshot anterior
+      const previousBriefs = queryClient.getQueryData(['admin-briefs']);
+
+      // Actualización optimista
+      queryClient.setQueryData(['admin-briefs'], (old: Brief[] | undefined) => {
+        if (!old) return old;
+        return old.map(brief => 
+          brief.id === briefId 
+            ? { 
+                ...brief, 
+                status: newStatus as any, 
+                status_updated_at: new Date().toISOString() 
+              }
+            : brief
+        );
+      });
+
+      return { previousBriefs };
+    },
+    onError: (error, variables, context) => {
+      // Revertir cambio optimista en caso de error
+      if (context?.previousBriefs) {
+        queryClient.setQueryData(['admin-briefs'], context.previousBriefs);
+      }
+
+      console.error('❌ Error en mutación:', error);
+      
+      toast({
+        title: "❌ Error al actualizar estado",
+        description: error instanceof Error ? error.message : "Error desconocido",
+        variant: "destructive",
+      });
     },
     onSuccess: (data) => {
-      console.log('=== ACTUALIZACIÓN EXITOSA ===');
-      console.log('Datos actualizados:', data);
+      console.log('✅ Mutación exitosa:', data);
       
-      // Invalidar queries para refrescar la data
+      // Invalidar queries para asegurar datos frescos
       queryClient.invalidateQueries({ queryKey: ['admin-briefs'] });
       
       toast({
         title: "✅ Estado actualizado",
-        description: `El presupuesto de "${data.company_name}" se cambió a "${data.status}".`,
-      });
-    },
-    onError: (error) => {
-      console.error('=== ERROR EN MUTACIÓN ===');
-      console.error('Error completo:', error);
-      
-      const errorMessage = error instanceof Error ? error.message : "Error desconocido al actualizar el presupuesto.";
-      
-      toast({
-        title: "❌ Error al actualizar",
-        description: errorMessage,
-        variant: "destructive",
+        description: `"${data.company_name}" cambió a "${STATUS_CONFIG[data.newStatus as keyof typeof STATUS_CONFIG]?.label}".`,
       });
     },
   });
+
+  // Función para manejar cambio de estado por dropdown
+  const handleStatusChange = (briefId: string, newStatus: string) => {
+    console.log('🔄 Cambio de estado por dropdown:', { briefId, newStatus });
+    updateBriefStatusMutation.mutate({ briefId, newStatus });
+  };
 
   const handleViewDetail = (brief: Brief) => {
     setSelectedBrief(brief);
@@ -350,11 +402,10 @@ const AdminDashboard = () => {
     const briefId = active.id as string;
     const newStatus = over.id as string;
     
-    // Buscar el brief actual con validación mejorada
+    // Validar que el brief existe
     const currentBrief = briefs?.find(b => b.id === briefId);
     if (!currentBrief) {
       console.error('❌ Brief no encontrado en handleDragEnd:', briefId);
-      console.error('Briefs disponibles:', briefs?.map(b => ({ id: b.id, company: b.company_name })));
       
       toast({
         title: "Error",
@@ -368,19 +419,11 @@ const AdminDashboard = () => {
 
     const currentStatus = currentBrief.status || 'pending';
     
-    console.log('📊 Comparando estados:', { 
-      briefId,
-      company: currentBrief.company_name,
-      from: currentStatus, 
-      to: newStatus,
-      shouldUpdate: currentStatus !== newStatus
-    });
-    
     if (currentStatus !== newStatus) {
-      console.log('🚀 Ejecutando mutación para cambiar estado...');
+      console.log('🚀 Ejecutando mutación por drag-and-drop...');
       updateBriefStatusMutation.mutate({ briefId, newStatus });
     } else {
-      console.log('ℹ️ El estado no ha cambiado, no se requiere actualización');
+      console.log('ℹ️ El estado no ha cambiado');
     }
     
     setActiveId(null);
@@ -558,7 +601,7 @@ const AdminDashboard = () => {
           ))}
         </div>
 
-        {/* Kanban Board con Drag and Drop mejorado */}
+        {/* Kanban Board con ambos métodos: Drag and Drop + Dropdown */}
         <DndContext
           sensors={sensors}
           onDragStart={handleDragStart}
@@ -585,12 +628,15 @@ const AdminDashboard = () => {
                       key={brief.id}
                       brief={brief}
                       onViewDetail={handleViewDetail}
+                      onStatusChange={handleStatusChange}
                     />
                   ))}
                   
                   {categorizedBriefs && categorizedBriefs[column.id as keyof typeof categorizedBriefs].length === 0 && (
                     <div className="text-center py-8">
-                      <p className="text-sm text-muted-foreground">Arrastra elementos aquí</p>
+                      <p className="text-sm text-muted-foreground">
+                        Arrastra elementos aquí o usa el menú de opciones
+                      </p>
                     </div>
                   )}
                 </DroppableColumn>
@@ -611,6 +657,16 @@ const AdminDashboard = () => {
             ) : null}
           </DragOverlay>
         </DndContext>
+
+        {/* Indicador de método activo */}
+        <div className="mt-6 p-4 bg-card border border-border rounded-lg">
+          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            <AlertCircle className="w-4 h-4" />
+            <span>
+              <strong>Métodos disponibles:</strong> Arrastra las tarjetas entre columnas o usa el menú de opciones (⋮) en cada tarjeta para cambiar el estado.
+            </span>
+          </div>
+        </div>
 
         {selectedBrief && (
           <BriefDetailModal
