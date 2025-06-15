@@ -172,6 +172,10 @@ export type Database = {
         Args: { _user_id: string }
         Returns: undefined
       }
+      ensure_user_role: {
+        Args: { _email: string }
+        Returns: undefined
+      }
       has_role: {
         Args: {
           _user_id: string
