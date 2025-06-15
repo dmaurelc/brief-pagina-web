@@ -1,11 +1,11 @@
 import { useEffect, useState } from 'react';
-import { useUser } from '@clerk/clerk-react';
+import { useUser, useClerk } from '@clerk/clerk-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Eye, ArrowLeft, Shield, AlertCircle, FileText, Clock, CheckCircle, Send, ChevronDown, MoreVertical } from 'lucide-react';
+import { Eye, ArrowLeft, Shield, AlertCircle, FileText, Clock, CheckCircle, Send, ChevronDown, MoreVertical, LogOut } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Tables } from '@/integrations/supabase/types';
 import BriefDetailModal from '@/components/BriefDetailModal';
@@ -206,6 +206,7 @@ const DraggableBriefCard = ({
 
 const AdminDashboard = () => {
   const { user, isLoaded } = useUser();
+  const { signOut } = useClerk();
   const navigate = useNavigate();
   const [selectedBrief, setSelectedBrief] = useState<Brief | null>(null);
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
@@ -377,6 +378,10 @@ const AdminDashboard = () => {
   const handleViewDetail = (brief: Brief) => {
     setSelectedBrief(brief);
     setIsDetailModalOpen(true);
+  };
+
+  const handleSignOut = () => {
+    signOut(() => navigate('/'));
   };
 
   const handleDragStart = (event: DragStartEvent) => {
@@ -577,6 +582,10 @@ const AdminDashboard = () => {
               <Button onClick={() => navigate('/')} variant="outline" className="border-accent-600 hover:bg-accent-800">
                 <ArrowLeft className="w-4 h-4 mr-2" />
                 Inicio
+              </Button>
+              <Button onClick={handleSignOut} variant="outline" className="border-accent-600 hover:bg-accent-800">
+                <LogOut className="w-4 h-4 mr-2" />
+                Cerrar Sesión
               </Button>
             </div>
           </div>
