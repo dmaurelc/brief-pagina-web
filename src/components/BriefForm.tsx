@@ -1,1007 +1,169 @@
-import React, { useState, useEffect } from 'react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Progress } from '@/components/ui/progress';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Checkbox } from '@/components/ui/checkbox';
-import { ChevronLeft, ChevronRight, Send, Save, Building, Briefcase, DollarSign, Settings } from 'lucide-react';
-import { toast } from '@/hooks/use-toast';
+import { useState } from 'react';
+import { useUser } from '@clerk/clerk-react';
 import { supabase } from '@/integrations/supabase/client';
-import { 
-  validateCurrentStep, 
-  validateAllRequiredFields, 
-  getFirstIncompleteStep, 
-  hasFieldError,
-  fieldLabels 
-} from '@/utils/formValidation';
-
-interface FormData {
-  // Información de la empresa
-  companyName: string;
-  contactName: string;
-  email: string;
-  phone: string;
-  industry: string;
-  
-  // Sobre el proyecto
-  projectType: string;
-  projectDescription: string;
-  pages: string[];
-  features: string[];
-  timeline: string;
-  
-  // Presupuesto y objetivos
-  budget: string;
-  mainGoals: string;
-  targetAudience: string;
-  
-  // Información técnica
-  existingWebsite: string;
-  competitorWebsites: string;
-  designPreferences: string;
-  additionalNotes: string;
-}
-
-const initialFormData: FormData = {
-  companyName: '',
-  contactName: '',
-  email: '',
-  phone: '',
-  industry: '',
-  projectType: '',
-  projectDescription: '',
-  pages: [],
-  features: [],
-  timeline: '',
-  budget: '',
-  mainGoals: '',
-  targetAudience: '',
-  existingWebsite: '',
-  competitorWebsites: '',
-  designPreferences: '',
-  additionalNotes: ''
-};
-
-const industryOptions = [
-  'Tecnología',
-  'Salud',
-  'Educación',
-  'Retail/E-commerce',
-  'Servicios Financieros',
-  'Inmobiliaria',
-  'Turismo y Hospitalidad',
-  'Alimentación y Bebidas',
-  'Manufactura',
-  'Consultoría',
-  'Marketing y Publicidad',
-  'Deportes y Fitness',
-  'Arte y Entretenimiento',
-  'Automotriz',
-  'Construcción',
-  'Legal',
-  'Otros'
-];
-
-const pagesOptions = [
-  'Inicio',
-  'Nosotros',
-  'Servicios',
-  'Productos',
-  'Soluciones',
-  'Portafolio',
-  'Blog',
-  'Noticias',
-  'Contacto',
-  'Términos y Condiciones',
-  'Política de Privacidad'
-];
-
-const featuresOptions = [
-  'Galería de imágenes',
-  'Múlti lenguaje',
-  'Integración con Newsletter',
-  'Preguntas Frecuentes',
-  'Testimonios de Clientes',
-  'Clientes o Partners',
-  'Chat en vivo',
-  'Chatbot con IA'
-];
-
-const getBudgetLabel = (budgetValue: string) => {
-  const budgetLabels: { [key: string]: string } = {
-    'menos-300000': 'Menos de $300.000 CLP',
-    '300000-500000': 'Entre $300.000 - $500.000 CLP',
-    '500000-800000': 'Entre $500.000 - $800.000 CLP',
-    '800000-1000000': 'Entre $800.000 - $1.000.000 CLP',
-    'mas-1000000': 'Más de $1.000.000 CLP',
-    'por-definir': 'Por definir'
-  };
-  return budgetLabels[budgetValue] || budgetValue;
-};
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { useToast } from '@/hooks/use-toast';
+import { useUserSync } from '@/hooks/useUserSync';
+import BriefFormSteps from './BriefFormSteps';
 
 const BriefForm = () => {
-  const [currentStep, setCurrentStep] = useState(1);
-  const [formData, setFormData] = useState<FormData>(initialFormData);
+  const { user } = useUser();
+  const { toast } = useToast();
+  const { isUserSynced, syncStatus } = useUserSync();
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isSubmitted, setIsSubmitted] = useState(false);
-  const [validationErrors, setValidationErrors] = useState<string[]>([]);
-  const [submissionStep, setSubmissionStep] = useState('');
+  const [formData, setFormData] = useState({
+    companyName: '',
+    contactName: '',
+    email: user?.emailAddresses?.[0]?.emailAddress || '',
+    phone: '',
+    industry: '',
+    projectType: '',
+    projectDescription: '',
+    features: [] as string[],
+    budget: '',
+    timeline: '',
+    pages: [] as string[],
+    targetAudience: '',
+    mainGoals: '',
+    existingWebsite: '',
+    competitorWebsites: '',
+    designPreferences: '',
+    additionalNotes: ''
+  });
 
-  const totalSteps = 5;
-
-  // Cargar datos del localStorage al montar el componente
-  useEffect(() => {
-    const savedData = localStorage.getItem('briefweb-form-data');
-    if (savedData) {
-      try {
-        const parsedData = JSON.parse(savedData);
-        // Asegurar que pages y features siempre sean arrays
-        setFormData({
-          ...parsedData,
-          pages: Array.isArray(parsedData.pages) ? parsedData.pages : [],
-          features: Array.isArray(parsedData.features) ? parsedData.features : []
-        });
-        toast({
-          title: "Datos recuperados",
-          description: "Se han cargado los datos guardados anteriormente.",
-        });
-      } catch (error) {
-        console.error('Error al cargar datos guardados:', error);
-      }
-    }
-  }, []);
-
-  // Guardar datos en localStorage automáticamente cada vez que cambian
-  useEffect(() => {
-    localStorage.setItem('briefweb-form-data', JSON.stringify(formData));
-  }, [formData]);
-
-  const updateFormData = (field: keyof FormData, value: string | string[]) => {
-    setFormData(prev => ({
-      ...prev,
-      [field]: value
-    }));
-    
-    // Clear validation errors when user starts typing
-    if (validationErrors.length > 0) {
-      setValidationErrors([]);
-    }
-  };
-
-  const handlePageToggle = (page: string, checked: boolean) => {
-    const currentPages = Array.isArray(formData.pages) ? formData.pages : [];
-    const updatedPages = checked
-      ? [...currentPages, page]
-      : currentPages.filter(p => p !== page);
-    updateFormData('pages', updatedPages);
-  };
-
-  const handleFeatureToggle = (feature: string, checked: boolean) => {
-    const currentFeatures = Array.isArray(formData.features) ? formData.features : [];
-    const updatedFeatures = checked
-      ? [...currentFeatures, feature]
-      : currentFeatures.filter(f => f !== feature);
-    updateFormData('features', updatedFeatures);
-  };
-
-  const saveProgress = () => {
-    // Esta función ahora solo muestra un mensaje ya que el guardado es automático
-    toast({
-      title: "Datos guardados",
-      description: "Tus datos se guardan automáticamente mientras completas el formulario.",
-    });
-  };
-
-  const nextStep = () => {
-    // Validate current step before advancing
-    const validation = validateCurrentStep(formData, currentStep);
-    
-    if (!validation.isValid) {
-      setValidationErrors(validation.missingFields);
-      return; // Don't advance if validation fails
+  const handleSubmit = async () => {
+    if (!user?.emailAddresses?.[0]?.emailAddress) {
+      toast({
+        title: "Error de autenticación",
+        description: "Debes estar autenticado para enviar un brief",
+        variant: "destructive",
+      });
+      return;
     }
 
-    // Clear validation errors and advance
-    setValidationErrors([]);
-    if (currentStep < totalSteps) {
-      setCurrentStep(currentStep + 1);
+    if (!isUserSynced) {
+      toast({
+        title: "Sincronización pendiente",
+        description: "Esperando sincronización del usuario. Intenta nuevamente en unos segundos.",
+        variant: "destructive",
+      });
+      return;
     }
-  };
 
-  const prevStep = () => {
-    // Always allow going back, clear validation errors
-    setValidationErrors([]);
-    if (currentStep > 1) {
-      setCurrentStep(currentStep - 1);
-    }
-  };
-
-  const submitForm = async () => {
-    // Final validation before submission
-    const validation = validateAllRequiredFields(formData);
-    
-    if (!validation.isValid) {
-      // Navigate to the first incomplete step
-      const firstIncompleteStep = getFirstIncompleteStep(formData);
-      setCurrentStep(firstIncompleteStep);
-      setValidationErrors(validation.missingFields);
+    if (syncStatus === 'error') {
+      toast({
+        title: "Error de sincronización",
+        description: "Hubo un problema sincronizando tu usuario. Recarga la página e intenta nuevamente.",
+        variant: "destructive",
+      });
       return;
     }
 
     setIsSubmitting(true);
-    setSubmissionStep('Guardando datos...');
-    
+
     try {
-      // Paso 1: Guardar en Supabase
-      console.log('Guardando brief en Supabase...');
-      const { data: briefData, error: supabaseError } = await supabase
+      const briefData = {
+        company_name: formData.companyName,
+        contact_name: formData.contactName,
+        email: user.emailAddresses[0].emailAddress,
+        phone: formData.phone || null,
+        industry: formData.industry,
+        project_type: formData.projectType,
+        project_description: formData.projectDescription,
+        features: formData.features,
+        budget: formData.budget,
+        timeline: formData.timeline,
+        pages: formData.pages,
+        target_audience: formData.targetAudience,
+        main_goals: formData.mainGoals,
+        existing_website: formData.existingWebsite || null,
+        competitor_websites: formData.competitorWebsites || null,
+        design_preferences: formData.designPreferences || null,
+        additional_notes: formData.additionalNotes || null
+      };
+
+      console.log('Enviando brief con datos:', briefData);
+
+      const { data, error } = await supabase
         .from('briefs')
-        .insert({
-          company_name: formData.companyName,
-          contact_name: formData.contactName,
-          email: formData.email,
-          phone: formData.phone,
-          industry: formData.industry,
-          project_type: formData.projectType,
-          project_description: formData.projectDescription,
-          pages: formData.pages,
-          features: formData.features,
-          timeline: formData.timeline,
-          budget: formData.budget,
-          main_goals: formData.mainGoals,
-          target_audience: formData.targetAudience,
-          existing_website: formData.existingWebsite,
-          competitor_websites: formData.competitorWebsites,
-          design_preferences: formData.designPreferences,
-          additional_notes: formData.additionalNotes
-        })
-        .select()
-        .single();
+        .insert(briefData)
+        .select();
 
-      if (supabaseError) {
-        console.error('Error guardando en Supabase:', supabaseError);
-        throw new Error('Error al guardar los datos en la base de datos');
-      }
-
-      console.log('Brief guardado exitosamente:', briefData.id);
-      
-      // Paso 2: Intentar generar PDF (no crítico)
-      let pdfUrl = null;
-      let fileName = null;
-      
-      try {
-        setSubmissionStep('Generando PDF...');
-        console.log('Generando PDF para brief:', briefData.id);
-        
-        const pdfResponse = await supabase.functions.invoke('generate-brief-pdf', {
-          body: { briefId: briefData.id }
+      if (error) {
+        console.error('Error guardando brief:', error);
+        toast({
+          title: "Error al enviar",
+          description: `Hubo un problema al guardar tu brief: ${error.message}`,
+          variant: "destructive",
         });
-
-        if (pdfResponse.error) {
-          console.warn('Error generando PDF (no crítico):', pdfResponse.error);
-          // No lanzamos error aquí, el PDF es opcional
-        } else if (pdfResponse.data?.pdfUrl) {
-          pdfUrl = pdfResponse.data.pdfUrl;
-          fileName = pdfResponse.data.fileName;
-          console.log('PDF generado exitosamente:', pdfUrl);
-        }
-      } catch (pdfError) {
-        console.warn('Error generando PDF (continuando sin PDF):', pdfError);
-        // No lanzamos error, el PDF es opcional
+        return;
       }
 
-      // Paso 3: Enviar notificación por email
-      try {
-        setSubmissionStep('Enviando notificación...');
-        console.log('Enviando notificación por email...');
-        
-        const formDataToSend = new FormData();
-        formDataToSend.append('access_key', 'afffbf8d-e6b6-4f58-b6df-2615afc756f5');
-        formDataToSend.append('subject', `Nuevo Brief Recibido - ${formData.companyName}`);
-        
-        // Crear mensaje mejorado
-        const summaryMessage = `
-NUEVO BRIEF RECIBIDO - Brief Página Web
-
-=== INFORMACIÓN DE LA EMPRESA ===
-Empresa: ${formData.companyName}
-Contacto: ${formData.contactName}
-Email: ${formData.email}
-Teléfono: ${formData.phone || 'No proporcionado'}
-Industria: ${formData.industry}
-
-=== PROYECTO ===
-Tipo: ${formData.projectType}
-Timeline: ${formData.timeline}
-Páginas: ${formData.pages.join(', ') || 'No especificadas'}
-Funcionalidades: ${formData.features.join(', ') || 'No especificadas'}
-
-=== PRESUPUESTO Y OBJETIVOS ===
-Presupuesto: ${getBudgetLabel(formData.budget)}
-Objetivos: ${formData.mainGoals}
-Público objetivo: ${formData.targetAudience}
-
-=== INFORMACIÓN TÉCNICA ===
-Sitio actual: ${formData.existingWebsite || 'No tiene'}
-Descripción: ${formData.projectDescription}
-
-${pdfUrl ? `=== DOCUMENTOS ===
-📄 Brief completo en PDF: ${pdfUrl}
-📥 Nombre del archivo: ${fileName}` : '⚠️ PDF no disponible - revisar brief en panel admin'}
-
----
-ID del Brief: ${briefData.id}
-Fecha: ${new Date().toLocaleString('es-CL')}
-        `;
-
-        formDataToSend.append('message', summaryMessage);
-
-        const emailResponse = await fetch('https://api.web3forms.com/submit', {
-          method: 'POST',
-          body: formDataToSend
-        });
-
-        if (!emailResponse.ok) {
-          console.warn('Error enviando email de notificación:', emailResponse.statusText);
-          // No lanzamos error, el email es opcional
-        } else {
-          console.log('Email enviado exitosamente');
-        }
-      } catch (emailError) {
-        console.warn('Error enviando email (continuando):', emailError);
-        // No lanzamos error, el email es opcional
-      }
-
-      // Éxito total
+      console.log('Brief guardado exitosamente:', data);
+      
       toast({
-        title: "¡Brief enviado exitosamente!",
-        description: pdfUrl 
-          ? "Tu información ha sido guardada y el PDF generado. Recibirás tu presupuesto en las próximas 24 horas."
-          : "Tu información ha sido guardada exitosamente. Recibirás tu presupuesto en las próximas 24 horas.",
+        title: "Brief enviado exitosamente",
+        description: "Hemos recibido tu solicitud de presupuesto. Te contactaremos pronto.",
       });
-      
-      setIsSubmitted(true);
-      
-      // Limpiar datos guardados
-      localStorage.removeItem('briefweb-form-data');
-      
-    } catch (error: any) {
-      console.error('Error crítico en el proceso de envío:', error);
-      
-      let errorMessage = 'Hubo un problema al procesar tu solicitud.';
-      
-      if (error.message?.includes('base de datos')) {
-        errorMessage = 'Error al guardar los datos. Por favor verifica tu conexión e inténtalo de nuevo.';
-      } else if (error.message?.includes('red') || error.message?.includes('network')) {
-        errorMessage = 'Error de conexión. Por favor verifica tu conexión a internet e inténtalo de nuevo.';
-      }
-      
+
+      // Reset form
+      setFormData({
+        companyName: '',
+        contactName: '',
+        email: user.emailAddresses[0].emailAddress,
+        phone: '',
+        industry: '',
+        projectType: '',
+        projectDescription: '',
+        features: [],
+        budget: '',
+        timeline: '',
+        pages: [],
+        targetAudience: '',
+        mainGoals: '',
+        existingWebsite: '',
+        competitorWebsites: '',
+        designPreferences: '',
+        additionalNotes: ''
+      });
+
+    } catch (error) {
+      console.error('Error inesperado:', error);
       toast({
-        title: "Error al procesar el brief",
-        description: errorMessage + ' Si el problema persiste, contacta con soporte.',
-        variant: "destructive"
+        title: "Error inesperado",
+        description: "Ocurrió un error inesperado. Por favor, intenta nuevamente.",
+        variant: "destructive",
       });
     } finally {
       setIsSubmitting(false);
-      setSubmissionStep('');
-    }
-  };
-
-  const startNewBrief = () => {
-    localStorage.removeItem('briefweb-form-data');
-    setFormData(initialFormData);
-    setCurrentStep(1);
-    setIsSubmitted(false);
-    toast({
-      title: "Nuevo formulario iniciado",
-      description: "Puedes comenzar un nuevo brief desde cero.",
-    });
-  };
-
-  const reviewBrief = () => {
-    setIsSubmitted(false);
-    setCurrentStep(5); // Volver al resumen
-    toast({
-      title: "Revisando brief",
-      description: "Puedes revisar y modificar tu información si es necesario.",
-    });
-  };
-
-  // Helper function to get input className with error styling
-  const getInputClassName = (fieldName: keyof FormData) => {
-    const hasError = hasFieldError(formData, fieldName, currentStep) && validationErrors.length > 0;
-    return hasError ? "border-red-500 focus:border-red-500 focus:ring-red-200" : "";
-  };
-
-  // Helper function to get label className with error styling
-  const getLabelClassName = (fieldName: keyof FormData) => {
-    const hasError = hasFieldError(formData, fieldName, currentStep) && validationErrors.length > 0;
-    return hasError ? "text-red-600 font-medium" : "";
-  };
-
-  // Si ya fue enviado, mostrar opciones
-  if (isSubmitted) {
-    return (
-      <Card className="w-full max-w-4xl mx-auto bg-accent-900">
-        <CardContent className="text-center py-12">
-          <div className="mb-8">
-            <div className="bg-green-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
-              <svg className="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-              </svg>
-            </div>
-            <h3 className="text-2xl font-semibold text-gray-900 mb-4">
-              ¡Brief enviado exitosamente!
-            </h3>
-            <p className="text-white mb-8">
-              Tu información ha sido guardada y analizada. Recibirás tu presupuesto personalizado en las próximas 24 horas.
-            </p>
-          </div>
-          
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Button
-              onClick={reviewBrief}
-              variant="outline"
-              size="lg"
-              className="flex items-center"
-            >
-              <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-              </svg>
-              Revisar información enviada
-            </Button>
-            
-            <Button
-              onClick={startNewBrief}
-              size="lg"
-              className="flex items-center"
-            >
-              <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-              </svg>
-              Solicitar nuevo presupuesto
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
-    );
-  }
-
-  const renderStep = () => {
-    switch (currentStep) {
-      case 1:
-        return (
-          <div className="space-y-4">
-            <div>
-              <Label htmlFor="companyName" className={getLabelClassName('companyName')}>
-                Nombre de la empresa *
-              </Label>
-              <Input
-                id="companyName"
-                value={formData.companyName}
-                onChange={(e) => updateFormData('companyName', e.target.value)}
-                placeholder="Ej: Mi Empresa S.A."
-                className={getInputClassName('companyName')}
-                required
-              />
-            </div>
-            <div>
-              <Label htmlFor="contactName" className={getLabelClassName('contactName')}>
-                Nombre de contacto *
-              </Label>
-              <Input
-                id="contactName"
-                value={formData.contactName}
-                onChange={(e) => updateFormData('contactName', e.target.value)}
-                placeholder="Tu nombre completo"
-                className={getInputClassName('contactName')}
-                required
-              />
-            </div>
-            <div>
-              <Label htmlFor="email" className={getLabelClassName('email')}>
-                Email *
-              </Label>
-              <Input
-                id="email"
-                type="email"
-                value={formData.email}
-                onChange={(e) => updateFormData('email', e.target.value)}
-                placeholder="tu@empresa.com"
-                className={getInputClassName('email')}
-                required
-              />
-            </div>
-            <div>
-              <Label htmlFor="phone" className={getLabelClassName('phone')}>
-                Teléfono *
-              </Label>
-              <Input
-                id="phone"
-                type="tel"
-                value={formData.phone}
-                onChange={(e) => updateFormData('phone', e.target.value)}
-                placeholder="+56 9 1234 5678"
-                className={getInputClassName('phone')}
-                required
-              />
-            </div>
-            <div>
-              <Label htmlFor="industry" className={getLabelClassName('industry')}>
-                Industria/Sector *
-              </Label>
-              <Select 
-                value={formData.industry} 
-                onValueChange={(value) => updateFormData('industry', value)}
-              >
-                <SelectTrigger className={getInputClassName('industry')}>
-                  <SelectValue placeholder="Selecciona tu industria" />
-                </SelectTrigger>
-                <SelectContent>
-                  {industryOptions.map((industry) => (
-                    <SelectItem key={industry} value={industry}>
-                      {industry}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-        );
-
-      case 2:
-        return (
-          <div className="space-y-6">
-            <div>
-              <Label htmlFor="projectType" className={getLabelClassName('projectType')}>
-                Tipo de proyecto *
-              </Label>
-              <Select 
-                value={formData.projectType} 
-                onValueChange={(value) => updateFormData('projectType', value)}
-              >
-                <SelectTrigger className={getInputClassName('projectType')}>
-                  <SelectValue placeholder="Selecciona una opción" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="nuevo">Sitio web nuevo</SelectItem>
-                  <SelectItem value="rediseno">Rediseño de sitio existente</SelectItem>
-                  <SelectItem value="ecommerce">Tienda online/E-commerce</SelectItem>
-                  <SelectItem value="landing">Landing page</SelectItem>
-                  <SelectItem value="blog">Blog/Portal de contenidos</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            
-            <div>
-              <Label htmlFor="projectDescription" className={getLabelClassName('projectDescription')}>
-                Descripción del proyecto *
-              </Label>
-              <Textarea
-                id="projectDescription"
-                value={formData.projectDescription}
-                onChange={(e) => updateFormData('projectDescription', e.target.value)}
-                placeholder="Describe en detalle qué necesitas..."
-                rows={4}
-                className={getInputClassName('projectDescription')}
-                required
-              />
-            </div>
-
-            <div>
-              <Label className={getLabelClassName('pages')}>
-                Páginas requeridas * (mínimo 4)
-              </Label>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 mt-2">
-                {pagesOptions.map((page) => (
-                  <div key={page} className="flex items-center space-x-2">
-                    <Checkbox
-                      id={page}
-                      checked={(formData.pages || []).includes(page)}
-                      onCheckedChange={(checked) => handlePageToggle(page, checked as boolean)}
-                    />
-                    <Label htmlFor={page} className="text-sm cursor-pointer">
-                      {page}
-                    </Label>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            <div>
-              <Label>
-                Funcionalidades (opcional)
-              </Label>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 mt-2">
-                {featuresOptions.map((feature) => (
-                  <div key={feature} className="flex items-center space-x-2">
-                    <Checkbox
-                      id={feature}
-                      checked={(formData.features || []).includes(feature)}
-                      onCheckedChange={(checked) => handleFeatureToggle(feature, checked as boolean)}
-                    />
-                    <Label htmlFor={feature} className="text-sm cursor-pointer">
-                      {feature}
-                    </Label>
-                  </div>
-                ))}
-              </div>
-            </div>
-            
-            <div>
-              <Label htmlFor="timeline" className={getLabelClassName('timeline')}>
-                Timeline esperado *
-              </Label>
-              <Select 
-                value={formData.timeline} 
-                onValueChange={(value) => updateFormData('timeline', value)}
-              >
-                <SelectTrigger className={getInputClassName('timeline')}>
-                  <SelectValue placeholder="Selecciona un plazo" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="1-2-semanas">1-2 semanas</SelectItem>
-                  <SelectItem value="1-mes">1 mes</SelectItem>
-                  <SelectItem value="2-3-meses">2-3 meses</SelectItem>
-                  <SelectItem value="3-6-meses">3-6 meses</SelectItem>
-                  <SelectItem value="mas-6-meses">Más de 6 meses</SelectItem>
-                  <SelectItem value="flexible">Flexible</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-        );
-
-      case 3:
-        return (
-          <div className="space-y-4">
-            <div>
-              <Label htmlFor="budget" className={getLabelClassName('budget')}>
-                Presupuesto disponible *
-              </Label>
-              <Select 
-                value={formData.budget} 
-                onValueChange={(value) => updateFormData('budget', value)}
-              >
-                <SelectTrigger className={getInputClassName('budget')}>
-                  <SelectValue placeholder="Selecciona un rango" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="menos-300000">Menos de $300.000 CLP</SelectItem>
-                  <SelectItem value="300000-500000">Entre $300.000 - $500.000 CLP</SelectItem>
-                  <SelectItem value="500000-800000">Entre $500.000 - $800.000 CLP</SelectItem>
-                  <SelectItem value="800000-1000000">Entre $800.000 - $1.000.000 CLP</SelectItem>
-                  <SelectItem value="mas-1000000">Más de $1.000.000 CLP</SelectItem>
-                  <SelectItem value="por-definir">Por definir</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div>
-              <Label htmlFor="mainGoals" className={getLabelClassName('mainGoals')}>
-                Objetivos principales del sitio web *
-              </Label>
-              <Textarea
-                id="mainGoals"
-                value={formData.mainGoals}
-                onChange={(e) => updateFormData('mainGoals', e.target.value)}
-                placeholder="¿Qué esperas lograr con el sitio web? (generar leads, ventas, branding, etc.)"
-                rows={3}
-                className={getInputClassName('mainGoals')}
-                required
-              />
-            </div>
-            <div>
-              <Label htmlFor="targetAudience" className={getLabelClassName('targetAudience')}>
-                Público objetivo *
-              </Label>
-              <Textarea
-                id="targetAudience"
-                value={formData.targetAudience}
-                onChange={(e) => updateFormData('targetAudience', e.target.value)}
-                placeholder="Describe a tu audiencia ideal (edad, intereses, comportamiento, etc.)"
-                rows={3}
-                className={getInputClassName('targetAudience')}
-                required
-              />
-            </div>
-          </div>
-        );
-
-      case 4:
-        return (
-          <div className="space-y-4">
-            <div>
-              <Label htmlFor="existingWebsite" className={getLabelClassName('existingWebsite')}>
-                Sitio web actual *
-              </Label>
-              <Input
-                id="existingWebsite"
-                type="url"
-                value={formData.existingWebsite}
-                onChange={(e) => updateFormData('existingWebsite', e.target.value)}
-                placeholder="https://www.tusitio.com (o escribe 'No tengo' si no tienes)"
-                className={getInputClassName('existingWebsite')}
-                required
-              />
-            </div>
-            <div>
-              <Label htmlFor="competitorWebsites" className={getLabelClassName('competitorWebsites')}>
-                Sitios web de competencia *
-              </Label>
-              <Textarea
-                id="competitorWebsites"
-                value={formData.competitorWebsites}
-                onChange={(e) => updateFormData('competitorWebsites', e.target.value)}
-                placeholder="URLs de sitios que te gustan o son tu competencia"
-                rows={3}
-                className={getInputClassName('competitorWebsites')}
-                required
-              />
-            </div>
-            <div>
-              <Label htmlFor="designPreferences" className={getLabelClassName('designPreferences')}>
-                Preferencias de diseño *
-              </Label>
-              <Textarea
-                id="designPreferences"
-                value={formData.designPreferences}
-                onChange={(e) => updateFormData('designPreferences', e.target.value)}
-                placeholder="Colores, estilo, elementos que te gustan o no..."
-                rows={3}
-                className={getInputClassName('designPreferences')}
-                required
-              />
-            </div>
-            <div>
-              <Label htmlFor="additionalNotes" className={getLabelClassName('additionalNotes')}>
-                Notas adicionales *
-              </Label>
-              <Textarea
-                id="additionalNotes"
-                value={formData.additionalNotes}
-                onChange={(e) => updateFormData('additionalNotes', e.target.value)}
-                placeholder="Cualquier información adicional relevante"
-                rows={3}
-                className={getInputClassName('additionalNotes')}
-                required
-              />
-            </div>
-          </div>
-        );
-
-      case 5:
-        return (
-          <div className="space-y-6">
-            <div className="text-center">
-              <h3 className="text-2xl font-medium mb-2">Resumen de tu Brief</h3>
-              <p className="text-muted-foreground mb-8">
-                Revisa toda la información antes de enviar. Recibirás una respuesta en las próximas 24 horas.
-              </p>
-            </div>
-            
-            <div className="space-y-6">
-              {/* Información de la empresa */}
-              <div className="border rounded-lg p-6 bg-card">
-                <div className="flex items-center mb-4">
-                  <Building className="w-5 h-5 text-primary mr-2" />
-                  <h4 className="text-lg font-medium">Información de la empresa</h4>
-                </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <span className="text-sm font-medium text-muted-foreground">Empresa:</span>
-                    <p className="text-sm mt-1">{formData.companyName || 'No especificado'}</p>
-                  </div>
-                  <div>
-                    <span className="text-sm font-medium text-muted-foreground">Contacto:</span>
-                    <p className="text-sm mt-1">{formData.contactName || 'No especificado'}</p>
-                  </div>
-                  <div>
-                    <span className="text-sm font-medium text-muted-foreground">Email:</span>
-                    <p className="text-sm mt-1">{formData.email || 'No especificado'}</p>
-                  </div>
-                  <div>
-                    <span className="text-sm font-medium text-muted-foreground">Teléfono:</span>
-                    <p className="text-sm mt-1">{formData.phone || 'No especificado'}</p>
-                  </div>
-                  <div className="md:col-span-2">
-                    <span className="text-sm font-medium text-muted-foreground">Industria:</span>
-                    <p className="text-sm mt-1">{formData.industry || 'No especificado'}</p>
-                  </div>
-                </div>
-              </div>
-
-              {/* Detalles del proyecto */}
-              <div className="border rounded-lg p-6 bg-card">
-                <div className="flex items-center mb-4">
-                  <Briefcase className="w-5 h-5 text-primary mr-2" />
-                  <h4 className="text-lg font-medium">Detalles del proyecto</h4>
-                </div>
-                <div className="space-y-4">
-                  <div>
-                    <span className="text-sm font-medium text-muted-foreground">Tipo de proyecto:</span>
-                    <p className="text-sm mt-1">{formData.projectType || 'No especificado'}</p>
-                  </div>
-                  <div>
-                    <span className="text-sm font-medium text-muted-foreground">Descripción:</span>
-                    <p className="text-sm mt-1">{formData.projectDescription || 'No especificado'}</p>
-                  </div>
-                  <div>
-                    <span className="text-sm font-medium text-muted-foreground">Timeline:</span>
-                    <p className="text-sm mt-1">{formData.timeline || 'No especificado'}</p>
-                  </div>
-                  <div>
-                    <span className="text-sm font-medium text-muted-foreground">Páginas requeridas:</span>
-                    <div className="mt-1">
-                      {(formData.pages || []).length > 0 ? (
-                        <div className="flex flex-wrap gap-2">
-                          {(formData.pages || []).map((page, index) => (
-                            <span
-                              key={index}
-                              className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-primary/10 text-primary"
-                            >
-                              {page}
-                            </span>
-                          ))}
-                        </div>
-                      ) : (
-                        <p className="text-sm text-muted-foreground">Ninguna página seleccionada</p>
-                      )}
-                    </div>
-                  </div>
-                  <div>
-                    <span className="text-sm font-medium text-muted-foreground">Funcionalidades requeridas:</span>
-                    <div className="mt-1">
-                      {(formData.features || []).length > 0 ? (
-                        <div className="flex flex-wrap gap-2">
-                          {(formData.features || []).map((feature, index) => (
-                            <span
-                              key={index}
-                              className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-primary/10 text-primary"
-                            >
-                              {feature}
-                            </span>
-                          ))}
-                        </div>
-                      ) : (
-                        <p className="text-sm text-muted-foreground">Ninguna funcionalidad seleccionada</p>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Presupuesto y objetivos */}
-              <div className="border rounded-lg p-6 bg-card">
-                <div className="flex items-center mb-4">
-                  <DollarSign className="w-5 h-5 text-primary mr-2" />
-                  <h4 className="text-lg font-medium">Presupuesto y objetivos</h4>
-                </div>
-                <div className="space-y-4">
-                  <div>
-                    <span className="text-sm font-medium text-muted-foreground">Presupuesto disponible:</span>
-                    <p className="text-sm mt-1">{getBudgetLabel(formData.budget) || 'No especificado'}</p>
-                  </div>
-                  <div>
-                    <span className="text-sm font-medium text-muted-foreground">Objetivos principales:</span>
-                    <p className="text-sm mt-1">{formData.mainGoals || 'No especificado'}</p>
-                  </div>
-                  <div>
-                    <span className="text-sm font-medium text-muted-foreground">Público objetivo:</span>
-                    <p className="text-sm mt-1">{formData.targetAudience || 'No especificado'}</p>
-                  </div>
-                </div>
-              </div>
-
-              {/* Información técnica */}
-              <div className="border rounded-lg p-6 bg-card">
-                <div className="flex items-center mb-4">
-                  <Settings className="w-5 h-5 text-primary mr-2" />
-                  <h4 className="text-lg font-medium">Información técnica</h4>
-                </div>
-                <div className="space-y-4">
-                  <div>
-                    <span className="text-sm font-medium text-muted-foreground">Sitio web actual:</span>
-                    <p className="text-sm mt-1">{formData.existingWebsite || 'No tiene sitio web actual'}</p>
-                  </div>
-                  <div>
-                    <span className="text-sm font-medium text-muted-foreground">Sitios de competencia/referencia:</span>
-                    <p className="text-sm mt-1">{formData.competitorWebsites || 'No especificado'}</p>
-                  </div>
-                  <div>
-                    <span className="text-sm font-medium text-muted-foreground">Preferencias de diseño:</span>
-                    <p className="text-sm mt-1">{formData.designPreferences || 'No especificado'}</p>
-                  </div>
-                  <div>
-                    <span className="text-sm font-medium text-muted-foreground">Notas adicionales:</span>
-                    <p className="text-sm mt-1">{formData.additionalNotes || 'Ninguna nota adicional'}</p>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        );
-
-      default:
-        return null;
-    }
-  };
-
-  const getStepTitle = () => {
-    switch (currentStep) {
-      case 1: return "Información de la empresa";
-      case 2: return "Detalles del proyecto";
-      case 3: return "Presupuesto y objetivos";
-      case 4: return "Información técnica";
-      case 5: return "Resumen y envío";
-      default: return "";
     }
   };
 
   return (
-    <div className="w-full max-w-4xl mx-auto space-y-4">
-      <Card className="bg-accent-900">
-        <CardHeader>
-          <CardTitle className="text-xl font-medium">{getStepTitle()}</CardTitle>
-          <Progress value={(currentStep / totalSteps) * 100} className="w-full" />
-          <p className="text-sm text-muted-foreground">
-            Paso {currentStep} de {totalSteps} • Guardado automático activado
-          </p>
-        </CardHeader>
-        
-        <CardContent>
-          {renderStep()}
-          
-          <div className="flex justify-between mt-8">
-            <Button
-              onClick={prevStep}
-              disabled={currentStep === 1}
-              variant="outline"
-            >
-              <ChevronLeft className="w-4 h-4 mr-2" />
-              Anterior
-            </Button>
-            
-            {currentStep === totalSteps ? (
-              <Button
-                onClick={submitForm}
-                disabled={isSubmitting}
-                className="ml-auto"
-                size="lg"
-              >
-                {isSubmitting ? (
-                  <div className="flex items-center">
-                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                    {submissionStep || "Procesando..."}
-                  </div>
-                ) : (
-                  <>
-                    <Send className="w-4 h-4 mr-2" />
-                    Enviar Brief
-                  </>
-                )}
-              </Button>
-            ) : (
-              <Button onClick={nextStep}>
-                Siguiente
-                <ChevronRight className="w-4 h-4 ml-2" />
-              </Button>
-            )}
+    <Card className="w-full max-w-4xl mx-auto bg-card border-border">
+      <CardHeader>
+        <CardTitle className="text-2xl font-medium text-center text-foreground">
+          Solicitud de Presupuesto Web
+        </CardTitle>
+      </CardHeader>
+      <CardContent>
+        {syncStatus === 'error' && (
+          <div className="mb-6 p-4 bg-destructive/10 border border-destructive/20 rounded-lg">
+            <p className="text-destructive text-sm">
+              Hubo un problema sincronizando tu usuario. Recarga la página e intenta nuevamente.
+            </p>
           </div>
-        </CardContent>
-      </Card>
-
-      {/* Auto-save button centered */}
-      <div className="flex justify-center">
-        <Button onClick={saveProgress} variant="outline" size="sm">
-          <Save className="w-4 h-4 mr-2" />
-          Guardado automático
-        </Button>
-      </div>
-    </div>
+        )}
+        
+        <BriefFormSteps 
+          formData={formData} 
+          setFormData={setFormData} 
+          onSubmit={handleSubmit}
+          isSubmitting={isSubmitting || !isUserSynced}
+        />
+      </CardContent>
+    </Card>
   );
 };
 

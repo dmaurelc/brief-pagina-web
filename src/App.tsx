@@ -1,38 +1,48 @@
 
 import { Toaster } from "@/components/ui/toaster";
-import { Toaster as Sonner } from "@/components/ui/sonner";
-import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
-import Landing from "./pages/Landing";
+import { ClerkProvider } from '@clerk/clerk-react';
+import UserSyncProvider from '@/components/UserSyncProvider';
+import Index from "./pages/Index";
 import Brief from "./pages/Brief";
-import Auth from "./pages/Auth";
-import SignUpPage from "./pages/SignUp";
-import MyAccount from "./pages/MyAccount";
+import Admin from "./pages/Admin";
 import AdminDashboard from "./pages/AdminDashboard";
+import MyAccount from "./pages/MyAccount";
+import Auth from "./pages/Auth";
+import SignUp from "./pages/SignUp";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
 
-const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<Landing />} />
-          <Route path="/brief" element={<Brief />} />
-          <Route path="/auth/sign-in" element={<Auth />} />
-          <Route path="/auth/sign-up" element={<SignUpPage />} />
-          <Route path="/my-account" element={<MyAccount />} />
-          <Route path="/admin" element={<AdminDashboard />} />
-          {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-          <Route path="*" element={<NotFound />} />
-        </Routes>
-      </BrowserRouter>
-    </TooltipProvider>
-  </QueryClientProvider>
-);
+const PUBLISHABLE_KEY = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
+
+if (!PUBLISHABLE_KEY) {
+  throw new Error("Missing Publishable Key");
+}
+
+function App() {
+  return (
+    <ClerkProvider publishableKey={PUBLISHABLE_KEY}>
+      <QueryClientProvider client={queryClient}>
+        <UserSyncProvider>
+          <BrowserRouter>
+            <Routes>
+              <Route path="/" element={<Index />} />
+              <Route path="/brief" element={<Brief />} />
+              <Route path="/admin" element={<Admin />} />
+              <Route path="/admin/dashboard" element={<AdminDashboard />} />
+              <Route path="/my-account" element={<MyAccount />} />
+              <Route path="/auth/sign-in" element={<Auth />} />
+              <Route path="/auth/sign-up" element={<SignUp />} />
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+            <Toaster />
+          </BrowserRouter>
+        </UserSyncProvider>
+      </QueryClientProvider>
+    </ClerkProvider>
+  );
+}
 
 export default App;
