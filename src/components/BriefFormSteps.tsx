@@ -1,11 +1,12 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Building, Briefcase, DollarSign, Settings } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Building, Briefcase, DollarSign, Settings, ChevronRight, ChevronLeft } from 'lucide-react';
 
 interface FormData {
   companyName: string;
@@ -28,14 +29,10 @@ interface FormData {
 }
 
 interface BriefFormStepsProps {
-  currentStep: number;
   formData: FormData;
-  updateFormData: (field: keyof FormData, value: string | string[]) => void;
-  handlePageToggle: (page: string, checked: boolean) => void;
-  handleFeatureToggle: (feature: string, checked: boolean) => void;
-  getInputClassName: (fieldName: keyof FormData) => string;
-  getLabelClassName: (fieldName: keyof FormData) => string;
-  getBudgetLabel: (budgetValue: string) => string;
+  setFormData: React.Dispatch<React.SetStateAction<FormData>>;
+  onSubmit: () => Promise<void>;
+  isSubmitting: boolean;
 }
 
 const industryOptions = [
@@ -83,16 +80,115 @@ const featuresOptions = [
   'Chatbot con IA'
 ];
 
-export const BriefFormSteps: React.FC<BriefFormStepsProps> = ({
-  currentStep,
+const BriefFormSteps: React.FC<BriefFormStepsProps> = ({
   formData,
-  updateFormData,
-  handlePageToggle,
-  handleFeatureToggle,
-  getInputClassName,
-  getLabelClassName,
-  getBudgetLabel
+  setFormData,
+  onSubmit,
+  isSubmitting
 }) => {
+  const [currentStep, setCurrentStep] = useState(1);
+  const [errors, setErrors] = useState<Record<string, string>>({});
+
+  const updateFormData = (field: keyof FormData, value: string | string[]) => {
+    setFormData(prev => ({ ...prev, [field]: value }));
+    // Clear error when user starts typing
+    if (errors[field]) {
+      setErrors(prev => ({ ...prev, [field]: '' }));
+    }
+  };
+
+  const handlePageToggle = (page: string, checked: boolean) => {
+    setFormData(prev => ({
+      ...prev,
+      pages: checked 
+        ? [...prev.pages, page]
+        : prev.pages.filter(p => p !== page)
+    }));
+  };
+
+  const handleFeatureToggle = (feature: string, checked: boolean) => {
+    setFormData(prev => ({
+      ...prev,
+      features: checked 
+        ? [...prev.features, feature]
+        : prev.features.filter(f => f !== feature)
+    }));
+  };
+
+  const getInputClassName = (fieldName: keyof FormData) => {
+    return errors[fieldName] 
+      ? "border-destructive focus:border-destructive" 
+      : "";
+  };
+
+  const getLabelClassName = (fieldName: keyof FormData) => {
+    return errors[fieldName] 
+      ? "text-destructive" 
+      : "";
+  };
+
+  const getBudgetLabel = (budgetValue: string) => {
+    const budgetLabels: Record<string, string> = {
+      'menos-300000': 'Menos de $300.000 CLP',
+      '300000-500000': 'Entre $300.000 - $500.000 CLP',
+      '500000-800000': 'Entre $500.000 - $800.000 CLP',
+      '800000-1000000': 'Entre $800.000 - $1.000.000 CLP',
+      'mas-1000000': 'Más de $1.000.000 CLP',
+      'por-definir': 'Por definir'
+    };
+    return budgetLabels[budgetValue] || budgetValue;
+  };
+
+  const validateStep = (step: number): boolean => {
+    const newErrors: Record<string, string> = {};
+
+    switch (step) {
+      case 1:
+        if (!formData.companyName.trim()) newErrors.companyName = 'Nombre de empresa es requerido';
+        if (!formData.contactName.trim()) newErrors.contactName = 'Nombre de contacto es requerido';
+        if (!formData.email.trim()) newErrors.email = 'Email es requerido';
+        if (!formData.phone.trim()) newErrors.phone = 'Teléfono es requerido';
+        if (!formData.industry) newErrors.industry = 'Industria es requerida';
+        break;
+      case 2:
+        if (!formData.projectType) newErrors.projectType = 'Tipo de proyecto es requerido';
+        if (!formData.projectDescription.trim()) newErrors.projectDescription = 'Descripción del proyecto es requerida';
+        if (!formData.timeline) newErrors.timeline = 'Timeline es requerido';
+        if (formData.pages.length < 4) newErrors.pages = 'Debes seleccionar al menos 4 páginas';
+        break;
+      case 3:
+        if (!formData.budget) newErrors.budget = 'Presupuesto es requerido';
+        if (!formData.mainGoals.trim()) newErrors.mainGoals = 'Objetivos principales son requeridos';
+        if (!formData.targetAudience.trim()) newErrors.targetAudience = 'Público objetivo es requerido';
+        break;
+      case 4:
+        if (!formData.existingWebsite.trim()) newErrors.existingWebsite = 'Campo requerido';
+        if (!formData.competitorWebsites.trim()) newErrors.competitorWebsites = 'Campo requerido';
+        if (!formData.designPreferences.trim()) newErrors.designPreferences = 'Campo requerido';
+        if (!formData.additionalNotes.trim()) newErrors.additionalNotes = 'Campo requerido';
+        break;
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const handleNext = () => {
+    if (validateStep(currentStep)) {
+      setCurrentStep(prev => Math.min(prev + 1, 5));
+    }
+  };
+
+  const handlePrevious = () => {
+    setCurrentStep(prev => Math.max(prev - 1, 1));
+  };
+
+  const handleSubmit = async () => {
+    if (validateStep(4)) {
+      await onSubmit();
+    }
+  };
+
   const renderStep = () => {
     switch (currentStep) {
       case 1:
@@ -110,6 +206,7 @@ export const BriefFormSteps: React.FC<BriefFormStepsProps> = ({
                 className={getInputClassName('companyName')}
                 required
               />
+              {errors.companyName && <p className="text-sm text-destructive mt-1">{errors.companyName}</p>}
             </div>
             <div>
               <Label htmlFor="contactName" className={getLabelClassName('contactName')}>
@@ -123,6 +220,7 @@ export const BriefFormSteps: React.FC<BriefFormStepsProps> = ({
                 className={getInputClassName('contactName')}
                 required
               />
+              {errors.contactName && <p className="text-sm text-destructive mt-1">{errors.contactName}</p>}
             </div>
             <div>
               <Label htmlFor="email" className={getLabelClassName('email')}>
@@ -137,6 +235,7 @@ export const BriefFormSteps: React.FC<BriefFormStepsProps> = ({
                 className={getInputClassName('email')}
                 required
               />
+              {errors.email && <p className="text-sm text-destructive mt-1">{errors.email}</p>}
             </div>
             <div>
               <Label htmlFor="phone" className={getLabelClassName('phone')}>
@@ -151,6 +250,7 @@ export const BriefFormSteps: React.FC<BriefFormStepsProps> = ({
                 className={getInputClassName('phone')}
                 required
               />
+              {errors.phone && <p className="text-sm text-destructive mt-1">{errors.phone}</p>}
             </div>
             <div>
               <Label htmlFor="industry" className={getLabelClassName('industry')}>
@@ -171,6 +271,7 @@ export const BriefFormSteps: React.FC<BriefFormStepsProps> = ({
                   ))}
                 </SelectContent>
               </Select>
+              {errors.industry && <p className="text-sm text-destructive mt-1">{errors.industry}</p>}
             </div>
           </div>
         );
@@ -197,6 +298,7 @@ export const BriefFormSteps: React.FC<BriefFormStepsProps> = ({
                   <SelectItem value="blog">Blog/Portal de contenidos</SelectItem>
                 </SelectContent>
               </Select>
+              {errors.projectType && <p className="text-sm text-destructive mt-1">{errors.projectType}</p>}
             </div>
             
             <div>
@@ -212,6 +314,7 @@ export const BriefFormSteps: React.FC<BriefFormStepsProps> = ({
                 className={getInputClassName('projectDescription')}
                 required
               />
+              {errors.projectDescription && <p className="text-sm text-destructive mt-1">{errors.projectDescription}</p>}
             </div>
 
             <div>
@@ -232,6 +335,7 @@ export const BriefFormSteps: React.FC<BriefFormStepsProps> = ({
                   </div>
                 ))}
               </div>
+              {errors.pages && <p className="text-sm text-destructive mt-1">{errors.pages}</p>}
             </div>
 
             <div>
@@ -274,6 +378,7 @@ export const BriefFormSteps: React.FC<BriefFormStepsProps> = ({
                   <SelectItem value="flexible">Flexible</SelectItem>
                 </SelectContent>
               </Select>
+              {errors.timeline && <p className="text-sm text-destructive mt-1">{errors.timeline}</p>}
             </div>
           </div>
         );
@@ -301,6 +406,7 @@ export const BriefFormSteps: React.FC<BriefFormStepsProps> = ({
                   <SelectItem value="por-definir">Por definir</SelectItem>
                 </SelectContent>
               </Select>
+              {errors.budget && <p className="text-sm text-destructive mt-1">{errors.budget}</p>}
             </div>
             <div>
               <Label htmlFor="mainGoals" className={getLabelClassName('mainGoals')}>
@@ -315,6 +421,7 @@ export const BriefFormSteps: React.FC<BriefFormStepsProps> = ({
                 className={getInputClassName('mainGoals')}
                 required
               />
+              {errors.mainGoals && <p className="text-sm text-destructive mt-1">{errors.mainGoals}</p>}
             </div>
             <div>
               <Label htmlFor="targetAudience" className={getLabelClassName('targetAudience')}>
@@ -329,6 +436,7 @@ export const BriefFormSteps: React.FC<BriefFormStepsProps> = ({
                 className={getInputClassName('targetAudience')}
                 required
               />
+              {errors.targetAudience && <p className="text-sm text-destructive mt-1">{errors.targetAudience}</p>}
             </div>
           </div>
         );
@@ -349,6 +457,7 @@ export const BriefFormSteps: React.FC<BriefFormStepsProps> = ({
                 className={getInputClassName('existingWebsite')}
                 required
               />
+              {errors.existingWebsite && <p className="text-sm text-destructive mt-1">{errors.existingWebsite}</p>}
             </div>
             <div>
               <Label htmlFor="competitorWebsites" className={getLabelClassName('competitorWebsites')}>
@@ -363,6 +472,7 @@ export const BriefFormSteps: React.FC<BriefFormStepsProps> = ({
                 className={getInputClassName('competitorWebsites')}
                 required
               />
+              {errors.competitorWebsites && <p className="text-sm text-destructive mt-1">{errors.competitorWebsites}</p>}
             </div>
             <div>
               <Label htmlFor="designPreferences" className={getLabelClassName('designPreferences')}>
@@ -377,6 +487,7 @@ export const BriefFormSteps: React.FC<BriefFormStepsProps> = ({
                 className={getInputClassName('designPreferences')}
                 required
               />
+              {errors.designPreferences && <p className="text-sm text-destructive mt-1">{errors.designPreferences}</p>}
             </div>
             <div>
               <Label htmlFor="additionalNotes" className={getLabelClassName('additionalNotes')}>
@@ -391,6 +502,7 @@ export const BriefFormSteps: React.FC<BriefFormStepsProps> = ({
                 className={getInputClassName('additionalNotes')}
                 required
               />
+              {errors.additionalNotes && <p className="text-sm text-destructive mt-1">{errors.additionalNotes}</p>}
             </div>
           </div>
         );
@@ -552,7 +664,68 @@ export const BriefFormSteps: React.FC<BriefFormStepsProps> = ({
     }
   };
 
-  return renderStep();
+  return (
+    <div className="space-y-8">
+      {/* Progress bar */}
+      <div className="w-full bg-secondary rounded-full h-2">
+        <div 
+          className="bg-primary h-2 rounded-full transition-all duration-300"
+          style={{ width: `${(currentStep / 5) * 100}%` }}
+        />
+      </div>
+
+      {/* Step indicator */}
+      <div className="flex justify-between items-center text-sm">
+        <span className="text-muted-foreground">Paso {currentStep} de 5</span>
+        <span className="text-muted-foreground">
+          {currentStep === 1 && "Información de contacto"}
+          {currentStep === 2 && "Detalles del proyecto"}
+          {currentStep === 3 && "Presupuesto y objetivos"}
+          {currentStep === 4 && "Información técnica"}
+          {currentStep === 5 && "Resumen"}
+        </span>
+      </div>
+
+      {/* Step content */}
+      <div className="min-h-[400px]">
+        {renderStep()}
+      </div>
+
+      {/* Navigation buttons */}
+      <div className="flex justify-between pt-6">
+        <Button
+          type="button"
+          variant="outline"
+          onClick={handlePrevious}
+          disabled={currentStep === 1}
+          className="flex items-center gap-2"
+        >
+          <ChevronLeft className="w-4 h-4" />
+          Anterior
+        </Button>
+
+        {currentStep < 5 ? (
+          <Button
+            type="button"
+            onClick={handleNext}
+            className="flex items-center gap-2"
+          >
+            Siguiente
+            <ChevronRight className="w-4 h-4" />
+          </Button>
+        ) : (
+          <Button
+            type="button"
+            onClick={handleSubmit}
+            disabled={isSubmitting}
+            className="flex items-center gap-2"
+          >
+            {isSubmitting ? 'Enviando...' : 'Enviar Brief'}
+          </Button>
+        )}
+      </div>
+    </div>
+  );
 };
 
 export default BriefFormSteps;
