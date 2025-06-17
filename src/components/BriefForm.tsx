@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useRef } from 'react';
 import { useUser } from '@clerk/clerk-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -59,7 +58,15 @@ const BriefForm = () => {
   }, [briefLoading, hasExistingBrief, getLocalData, isLocalDataNewer, getInitialFormData, initializeFormWithLocalData]);
 
   const handleSubmit = async () => {
+    console.log('🚀 INICIANDO ENVÍO DEL BRIEF');
+    console.log('📊 Datos del usuario:', {
+      userEmail: user?.emailAddresses?.[0]?.emailAddress,
+      isUserSynced,
+      syncStatus
+    });
+
     if (!user?.emailAddresses?.[0]?.emailAddress) {
+      console.error('❌ ERROR: Usuario no autenticado');
       toast({
         title: "Error de autenticación",
         description: "Debes estar autenticado para enviar un brief",
@@ -69,6 +76,7 @@ const BriefForm = () => {
     }
 
     if (!isUserSynced) {
+      console.error('❌ ERROR: Usuario no sincronizado');
       toast({
         title: "Sincronización pendiente",
         description: "Esperando sincronización del usuario. Intenta nuevamente en unos segundos.",
@@ -78,6 +86,7 @@ const BriefForm = () => {
     }
 
     if (syncStatus === 'error') {
+      console.error('❌ ERROR: Error de sincronización');
       toast({
         title: "Error de sincronización",
         description: "Hubo un problema sincronizando tu usuario. Recarga la página e intenta nuevamente.",
@@ -86,21 +95,34 @@ const BriefForm = () => {
       return;
     }
 
+    console.log('🔍 VALIDANDO FORMULARIO...');
+    console.log('📝 Datos del formulario a validar:', formData);
+
     // Validar formulario antes de enviar
     const validation = validateAllRequiredFields(formData);
+    
+    console.log('✅ Resultado de validación:', validation);
+    
     if (!validation.isValid) {
+      console.error('❌ VALIDACIÓN FALLIDA:', validation);
       return; // El toast ya se muestra en la función de validación
     }
+
+    console.log('✅ VALIDACIÓN EXITOSA - Procediendo con envío');
 
     setIsSubmitting(true);
 
     try {
-      console.log('Enviando brief...');
+      console.log('💾 LLAMANDO A saveBrief...');
+      console.log('📤 Datos que se enviarán:', formData);
+      
       const data = await saveBrief(formData);
-      console.log('Brief enviado exitosamente:', data);
+      
+      console.log('🎉 BRIEF ENVIADO EXITOSAMENTE:', data);
       
       // Limpiar autoguardado una vez enviado exitosamente
       clearAutoSave();
+      console.log('🧹 Autoguardado limpiado');
       
       toast({
         title: "Brief enviado exitosamente",
@@ -108,13 +130,29 @@ const BriefForm = () => {
       });
 
     } catch (error) {
-      console.error('Error enviando brief:', error);
+      console.error('💥 ERROR COMPLETO EN ENVÍO:', error);
+      console.error('🔍 Tipo de error:', typeof error);
+      console.error('🔍 Constructor del error:', error?.constructor?.name);
+      
+      if (error instanceof Error) {
+        console.error('📝 Mensaje del error:', error.message);
+        console.error('📝 Stack del error:', error.stack);
+      }
+      
+      // Log adicional para errores de Supabase
+      if (error && typeof error === 'object' && 'code' in error) {
+        console.error('🗄️ Código de error Supabase:', error.code);
+        console.error('🗄️ Detalles de error Supabase:', error.details);
+        console.error('🗄️ Hint de error Supabase:', error.hint);
+      }
+      
       toast({
         title: "Error al enviar",
         description: `Hubo un problema al enviar tu brief: ${error instanceof Error ? error.message : 'Error desconocido'}`,
         variant: "destructive",
       });
     } finally {
+      console.log('🏁 FINALIZANDO PROCESO DE ENVÍO');
       setIsSubmitting(false);
     }
   };

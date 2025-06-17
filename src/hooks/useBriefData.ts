@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback } from 'react';
 import { useUser } from '@clerk/clerk-react';
 import { supabase } from '@/integrations/supabase/client';
@@ -128,11 +127,19 @@ export const useBriefData = () => {
   }, [user]);
 
   const saveBrief = useCallback(async (formData: BriefFormData) => {
+    console.log('💾 INICIANDO saveBrief');
+    console.log('👤 Usuario actual:', user?.emailAddresses?.[0]?.emailAddress);
+    console.log('🏢 Brief existente:', existingBrief ? `ID: ${existingBrief.id}` : 'Ninguno');
+
     if (!user?.emailAddresses?.[0]?.emailAddress) {
-      throw new Error('Usuario no autenticado');
+      const error = new Error('Usuario no autenticado');
+      console.error('❌ ERROR: Usuario no autenticado');
+      throw error;
     }
 
     try {
+      console.log('🔧 PREPARANDO DATOS PARA SUPABASE...');
+      
       const briefData = {
         company_name: formData.companyName,
         contact_name: formData.contactName,
@@ -154,11 +161,19 @@ export const useBriefData = () => {
         status: 'completed' as BriefStatus
       };
 
-      console.log('Guardando brief con datos:', briefData);
+      console.log('📊 DATOS PREPARADOS PARA SUPABASE:', briefData);
+      console.log('🔍 Validando datos críticos:');
+      console.log('  - Email:', briefData.email);
+      console.log('  - Company name:', briefData.company_name);
+      console.log('  - Contact name:', briefData.contact_name);
+      console.log('  - Status:', briefData.status);
+      console.log('  - Features array length:', briefData.features.length);
+      console.log('  - Pages array length:', briefData.pages.length);
 
       if (existingBrief) {
-        // Actualizar brief existente
-        console.log('Actualizando brief existente:', existingBrief.id);
+        console.log('🔄 ACTUALIZANDO BRIEF EXISTENTE');
+        console.log('🆔 ID del brief a actualizar:', existingBrief.id);
+        
         const { data, error } = await supabase
           .from('briefs')
           .update(briefData)
@@ -166,31 +181,55 @@ export const useBriefData = () => {
           .select();
 
         if (error) {
-          console.error('Error actualizando brief:', error);
+          console.error('💥 ERROR AL ACTUALIZAR BRIEF:', error);
+          console.error('🔍 Código de error:', error.code);
+          console.error('🔍 Mensaje:', error.message);
+          console.error('🔍 Detalles:', error.details);
+          console.error('🔍 Hint:', error.hint);
           throw new Error(`Error actualizando brief: ${error.message}`);
         }
         
-        console.log('Brief actualizado exitosamente:', data);
+        console.log('✅ BRIEF ACTUALIZADO EXITOSAMENTE:', data);
         return data;
       } else {
-        // Crear nuevo brief
-        console.log('Creando nuevo brief');
+        console.log('➕ CREANDO NUEVO BRIEF');
+        
         const { data, error } = await supabase
           .from('briefs')
           .insert(briefData)
           .select();
 
         if (error) {
-          console.error('Error creando brief:', error);
+          console.error('💥 ERROR AL CREAR BRIEF:', error);
+          console.error('🔍 Código de error:', error.code);
+          console.error('🔍 Mensaje:', error.message);
+          console.error('🔍 Detalles:', error.details);
+          console.error('🔍 Hint:', error.hint);
+          
+          // Logs adicionales para diagnosticar problemas específicos
+          if (error.code === '23505') {
+            console.error('🔒 ERROR DE DUPLICACIÓN: Ya existe un brief con estos datos');
+          } else if (error.code === '42501') {
+            console.error('🚫 ERROR DE PERMISOS: Sin permisos para insertar en la tabla');
+          } else if (error.message.includes('violates row-level security')) {
+            console.error('🛡️ ERROR RLS: Violación de seguridad a nivel de fila');
+          }
+          
           throw new Error(`Error creando brief: ${error.message}`);
         }
         
-        console.log('Brief creado exitosamente:', data);
-        setExistingBrief(data[0]); // Guardar el brief recién creado
+        console.log('✅ BRIEF CREADO EXITOSAMENTE:', data);
+        setExistingBrief(data[0]);
         return data;
       }
     } catch (error) {
-      console.error('Error en saveBrief:', error);
+      console.error('💥 ERROR GENERAL EN saveBrief:', error);
+      
+      // Log del stack trace completo
+      if (error instanceof Error) {
+        console.error('📝 Stack trace:', error.stack);
+      }
+      
       throw error;
     }
   }, [user, existingBrief]);

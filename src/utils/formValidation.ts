@@ -1,4 +1,3 @@
-
 import { toast } from '@/hooks/use-toast';
 
 interface FormData {
@@ -127,6 +126,9 @@ export const validateCurrentStep = (formData: FormData, currentStep: number): Va
 
 // Validate all required fields before submission
 export const validateAllRequiredFields = (formData: FormData): ValidationResult => {
+  console.log('🔍 INICIANDO VALIDACIÓN COMPLETA');
+  console.log('📝 Datos recibidos para validación:', formData);
+
   const allRequiredFields: (keyof FormData)[] = [
     ...getRequiredFieldsByStep(1),
     ...getRequiredFieldsByStep(2),
@@ -134,26 +136,36 @@ export const validateAllRequiredFields = (formData: FormData): ValidationResult 
     ...getRequiredFieldsByStep(4)
   ];
 
+  console.log('📋 Campos requeridos:', allRequiredFields);
+
   const missingFields: string[] = [];
 
   allRequiredFields.forEach(field => {
     const value = formData[field];
+    console.log(`🔍 Validando campo "${field}":`, value);
     
     // Special validation for pages only (features are now optional)
     if (field === 'pages') {
       if (!Array.isArray(value) || value.length < 4) {
+        console.log(`❌ Campo "${field}" inválido: debe tener al menos 4 elementos, tiene ${Array.isArray(value) ? value.length : 'no es array'}`);
         missingFields.push('Páginas requeridas (mínimo 4)');
+      } else {
+        console.log(`✅ Campo "${field}" válido: ${value.length} páginas`);
       }
     } else {
       // Regular field validation
       if (!value || (typeof value === 'string' && value.trim() === '')) {
+        console.log(`❌ Campo "${field}" vacío o inválido`);
         missingFields.push(fieldLabels[field]);
+      } else {
+        console.log(`✅ Campo "${field}" válido`);
       }
     }
   });
 
   // Email format validation
   if (formData.email && !isValidEmail(formData.email)) {
+    console.log('❌ Email con formato inválido:', formData.email);
     return {
       isValid: false,
       missingFields: [],
@@ -163,6 +175,11 @@ export const validateAllRequiredFields = (formData: FormData): ValidationResult 
 
   if (missingFields.length > 0) {
     const errorMessage = `Para enviar el brief, debes completar todos los campos obligatorios: ${missingFields.join(', ')}`;
+    
+    console.log('❌ VALIDACIÓN FALLIDA:', {
+      missingFields,
+      errorMessage
+    });
     
     toast({
       title: "Brief incompleto",
@@ -177,6 +194,7 @@ export const validateAllRequiredFields = (formData: FormData): ValidationResult 
     };
   }
 
+  console.log('✅ VALIDACIÓN EXITOSA - Todos los campos están completos');
   return {
     isValid: true,
     missingFields: []
