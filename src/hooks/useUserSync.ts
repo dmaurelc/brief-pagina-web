@@ -1,11 +1,12 @@
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useUser } from '@clerk/clerk-react';
 import { supabase } from '@/integrations/supabase/client';
 
 export const useUserSync = () => {
   const { user, isLoaded } = useUser();
   const [syncStatus, setSyncStatus] = useState<'idle' | 'syncing' | 'success' | 'error'>('idle');
+  const hasAttemptedSync = useRef(false);
 
   useEffect(() => {
     const syncUserRole = async () => {
@@ -13,7 +14,13 @@ export const useUserSync = () => {
         return;
       }
 
+      // Evitar múltiples sincronizaciones
+      if (hasAttemptedSync.current) {
+        return;
+      }
+
       const userEmail = user.emailAddresses[0].emailAddress;
+      hasAttemptedSync.current = true;
       setSyncStatus('syncing');
 
       try {
@@ -43,7 +50,7 @@ export const useUserSync = () => {
     };
 
     syncUserRole();
-  }, [user, isLoaded]);
+  }, [user?.emailAddresses?.[0]?.emailAddress, isLoaded]);
 
   return {
     syncStatus,

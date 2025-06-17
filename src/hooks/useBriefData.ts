@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useUser } from '@clerk/clerk-react';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -28,7 +28,7 @@ export const useBriefData = () => {
   const [existingBrief, setExistingBrief] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
-  const getInitialFormData = (): BriefFormData => {
+  const getInitialFormData = useCallback((): BriefFormData => {
     const baseData = {
       companyName: '',
       contactName: '',
@@ -73,7 +73,7 @@ export const useBriefData = () => {
     }
 
     return baseData;
-  };
+  }, [existingBrief, user?.emailAddresses]);
 
   useEffect(() => {
     const loadExistingBrief = async () => {
@@ -111,7 +111,7 @@ export const useBriefData = () => {
     loadExistingBrief();
   }, [user]);
 
-  const saveBrief = async (formData: BriefFormData) => {
+  const saveBrief = useCallback(async (formData: BriefFormData) => {
     if (!user?.emailAddresses?.[0]?.emailAddress) {
       throw new Error('Usuario no autenticado');
     }
@@ -159,7 +159,7 @@ export const useBriefData = () => {
       setExistingBrief(data[0]); // Guardar el brief recién creado
       return data;
     }
-  };
+  }, [user, existingBrief]);
 
   return {
     existingBrief,

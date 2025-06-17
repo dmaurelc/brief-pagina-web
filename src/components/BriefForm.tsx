@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useUser } from '@clerk/clerk-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
@@ -14,13 +14,16 @@ const BriefForm = () => {
   const { getInitialFormData, saveBrief, hasExistingBrief, loading: briefLoading } = useBriefData();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formData, setFormData] = useState(getInitialFormData());
+  const formInitialized = useRef(false);
 
-  // Actualizar formData cuando se carguen los datos del brief
+  // Actualizar formData solo una vez cuando se cargan los datos del brief
   useEffect(() => {
-    if (!briefLoading) {
+    if (!briefLoading && !formInitialized.current) {
+      console.log('Inicializando formulario con datos:', hasExistingBrief ? 'brief existente' : 'formulario vacío');
       setFormData(getInitialFormData());
+      formInitialized.current = true;
     }
-  }, [briefLoading, getInitialFormData]);
+  }, [briefLoading]);
 
   const handleSubmit = async () => {
     if (!user?.emailAddresses?.[0]?.emailAddress) {
