@@ -6,9 +6,7 @@ export function useLocalStorage<T>(key: string, initialValue: T, autoSave: boole
   const [storedValue, setStoredValue] = useState<T>(() => {
     try {
       const item = window.localStorage.getItem(key);
-      const parsed = item ? JSON.parse(item) : initialValue;
-      console.log(`📥 Loaded from localStorage "${key}":`, parsed);
-      return parsed;
+      return item ? JSON.parse(item) : initialValue;
     } catch (error) {
       console.error(`❌ Error loading localStorage key "${key}":`, error);
       return initialValue;
@@ -48,7 +46,6 @@ export function useLocalStorage<T>(key: string, initialValue: T, autoSave: boole
   // Función para limpiar
   const clearStorage = () => {
     try {
-      console.log(`🧹 Clearing localStorage "${key}"`);
       window.localStorage.removeItem(key);
     } catch (error) {
       console.error(`❌ Error clearing localStorage key "${key}":`, error);

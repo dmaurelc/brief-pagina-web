@@ -24,9 +24,7 @@ export const useUserSync = () => {
       setSyncStatus('syncing');
 
       try {
-        console.log('🔄 Sincronizando usuario:', userEmail);
-        
-        // Primero verificar si el usuario ya existe
+        // Verificar si el usuario ya existe
         const { data: existingRole, error: checkError } = await supabase
           .from('user_roles')
           .select('*')
@@ -40,13 +38,11 @@ export const useUserSync = () => {
         }
 
         if (existingRole) {
-          console.log('✅ Usuario ya sincronizado');
           setSyncStatus('success');
           return;
         }
 
         // Si no existe, crear el usuario usando la función SECURITY DEFINER
-        console.log('➕ Creando nuevo usuario...');
         const { error: ensureRoleError } = await supabase.rpc('ensure_user_role', {
           _email: userEmail
         });
@@ -57,7 +53,6 @@ export const useUserSync = () => {
           return;
         }
 
-        console.log('✅ Usuario sincronizado exitosamente');
         setSyncStatus('success');
       } catch (error) {
         console.error('💥 Error en sincronización de usuario:', error);
@@ -72,7 +67,6 @@ export const useUserSync = () => {
   useEffect(() => {
     if (syncStatus === 'error') {
       const timer = setTimeout(() => {
-        console.log('🔄 Reintentando sincronización...');
         hasAttemptedSync.current = false;
         setSyncStatus('idle');
       }, 5000); // Reintentar después de 5 segundos
@@ -82,15 +76,6 @@ export const useUserSync = () => {
   }, [syncStatus]);
 
   const isUserSynced = syncStatus === 'success';
-  
-  // Log para debugging del botón
-  if (!isUserSynced) {
-    console.log('⚠️ Usuario no sincronizado - Estado del botón:', {
-      syncStatus,
-      isUserSynced,
-      userEmail: user?.emailAddresses?.[0]?.emailAddress
-    });
-  }
 
   return {
     syncStatus,

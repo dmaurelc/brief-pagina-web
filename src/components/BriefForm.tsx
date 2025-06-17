@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useRef } from 'react';
 import { useUser } from '@clerk/clerk-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -17,18 +18,15 @@ const BriefForm = () => {
     getInitialFormData, 
     saveBrief, 
     hasExistingBrief, 
-    loading: briefLoading,
-    initializeFormWithLocalData 
+    loading: briefLoading 
   } = useBriefData();
   
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formData, setFormData] = useState(getInitialFormData());
-  const [showRecoveryMessage, setShowRecoveryMessage] = useState(false);
   const formInitialized = useRef(false);
 
   // Hook de autoguardado
   const { 
-    hasLocalData, 
     getLocalData, 
     isLocalDataNewer, 
     clearAutoSave, 
@@ -38,33 +36,29 @@ const BriefForm = () => {
   // Inicializar formulario con datos existentes o locales
   useEffect(() => {
     if (!briefLoading && !formInitialized.current && user?.emailAddresses?.[0]?.emailAddress) {
-      console.log('📊 Inicializando formulario...');
-      
       // Primero intentar recuperar datos locales
       const localData = getLocalData();
       
       // Priorizar datos locales si existen y son más recientes
       if (localData && (!hasExistingBrief || isLocalDataNewer())) {
-        console.log('🔄 Recuperando datos del autoguardado local');
         setFormData(localData);
-        setShowRecoveryMessage(true);
         
-        // Ocultar mensaje después de 5 segundos
-        setTimeout(() => setShowRecoveryMessage(false), 5000);
+        // Mostrar toast de recuperación
+        toast({
+          title: "Datos recuperados",
+          description: "Se han recuperado los datos que estabas editando anteriormente.",
+          duration: 4000,
+        });
       } else {
-        console.log('📝 Inicializando con datos del servidor o formulario vacío');
         const initialData = getInitialFormData();
         setFormData(initialData);
       }
       
       formInitialized.current = true;
-      console.log('✅ Formulario inicializado');
     }
-  }, [briefLoading, hasExistingBrief, getLocalData, isLocalDataNewer, getInitialFormData, user?.emailAddresses, hasLocalData]);
+  }, [briefLoading, hasExistingBrief, getLocalData, isLocalDataNewer, getInitialFormData, user?.emailAddresses, toast]);
 
   const handleSubmit = async () => {
-    console.log('🚀 Iniciando envío del brief');
-
     if (!user?.emailAddresses?.[0]?.emailAddress) {
       toast({
         title: "Error de autenticación",
@@ -75,7 +69,6 @@ const BriefForm = () => {
     }
 
     if (!isUserSynced) {
-      console.log('⚠️ Usuario no sincronizado, estado:', syncStatus);
       toast({
         title: "Sincronización pendiente",
         description: "Esperando sincronización del usuario. Intenta nuevamente en unos segundos.",
@@ -97,16 +90,13 @@ const BriefForm = () => {
     const validation = validateAllRequiredFields(formData);
     
     if (!validation.isValid) {
-      console.log('❌ Validación fallida');
       return; // El toast ya se muestra en la función de validación
     }
 
-    console.log('✅ Formulario válido - Enviando...');
     setIsSubmitting(true);
 
     try {
-      const data = await saveBrief(formData);
-      console.log('🎉 Brief enviado exitosamente');
+      await saveBrief(formData);
       
       // Limpiar autoguardado una vez enviado exitosamente
       clearAutoSave();
@@ -117,8 +107,6 @@ const BriefForm = () => {
       });
 
     } catch (error) {
-      console.error('💥 Error en envío:', error);
-      
       toast({
         title: "Error al enviar",
         description: `Hubo un problema al enviar tu brief: ${error instanceof Error ? error.message : 'Error desconocido'}`,
@@ -128,14 +116,6 @@ const BriefForm = () => {
       setIsSubmitting(false);
     }
   };
-
-  // Log del estado del botón para debugging
-  console.log('🔘 Estado del botón:', {
-    isSubmitting,
-    isUserSynced,
-    syncStatus,
-    buttonDisabled: isSubmitting || !isUserSynced
-  });
 
   if (briefLoading) {
     return (
@@ -166,14 +146,6 @@ const BriefForm = () => {
           </div>
           <AutoSaveIndicator lastSaved={lastSaved} />
         </div>
-        
-        {showRecoveryMessage && (
-          <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-            <p className="text-blue-800 text-sm">
-              ✨ Se han recuperado los datos que estabas editando anteriormente.
-            </p>
-          </div>
-        )}
       </CardHeader>
       <CardContent>
         {syncStatus === 'error' && (

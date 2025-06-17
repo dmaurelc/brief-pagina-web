@@ -23,7 +23,7 @@ interface BriefFormData {
 }
 
 const STORAGE_KEY = 'brief-form-autosave';
-const AUTOSAVE_DELAY = 3000; // 3 segundos - más tiempo para evitar guardado excesivo
+const AUTOSAVE_DELAY = 3000; // 3 segundos
 
 export const useAutoSave = (formData: BriefFormData, userEmail?: string) => {
   const [savedData, setSavedData, saveToStorage, clearStorage] = useLocalStorage<{
@@ -43,7 +43,6 @@ export const useAutoSave = (formData: BriefFormData, userEmail?: string) => {
   // Función para obtener datos guardados
   const getLocalData = (): BriefFormData | null => {
     if (hasLocalData()) {
-      console.log('✅ Datos locales encontrados');
       return savedData!.data;
     }
     return null;
@@ -65,7 +64,7 @@ export const useAutoSave = (formData: BriefFormData, userEmail?: string) => {
     return localTimestamp > briefTimestamp;
   };
 
-  // Auto-guardar con debounce más largo
+  // Auto-guardar con debounce
   useEffect(() => {
     if (!userEmail) {
       return;
@@ -88,13 +87,12 @@ export const useAutoSave = (formData: BriefFormData, userEmail?: string) => {
       clearTimeout(timeoutRef.current);
     }
 
-    // Establecer nuevo timeout más largo
+    // Establecer nuevo timeout
     timeoutRef.current = setTimeout(() => {
       const now = Date.now();
       
-      // Solo guardar si han pasado al menos 1 segundo desde el último guardado
-      if (now - lastSaveRef.current > 1000) {
-        console.log('💾 Auto-guardando formulario');
+      // Solo guardar si han pasado al menos 2 segundos desde el último guardado
+      if (now - lastSaveRef.current > 2000) {
         const dataToSave = {
           data: formData,
           timestamp: now,
@@ -115,7 +113,6 @@ export const useAutoSave = (formData: BriefFormData, userEmail?: string) => {
 
   // Limpiar datos cuando se envíe exitosamente
   const clearAutoSave = () => {
-    console.log('🧹 Limpiando auto-guardado...');
     clearStorage();
   };
 
