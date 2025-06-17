@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useRef } from 'react';
 import { useUser } from '@clerk/clerk-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -37,11 +38,22 @@ const BriefForm = () => {
 
   // Inicializar formulario con datos existentes o locales
   useEffect(() => {
-    if (!briefLoading && !formInitialized.current) {
+    console.log('🚀 Inicializando formulario:', {
+      briefLoading,
+      formInitialized: formInitialized.current,
+      hasExistingBrief,
+      hasLocalData,
+      userEmail: user?.emailAddresses?.[0]?.emailAddress
+    });
+
+    if (!briefLoading && !formInitialized.current && user?.emailAddresses?.[0]?.emailAddress) {
+      console.log('📊 Iniciando proceso de inicialización...');
+      
       const localData = getLocalData();
+      console.log('💾 Datos locales obtenidos:', localData);
       
       if (localData && (!hasExistingBrief || isLocalDataNewer())) {
-        console.log('Recuperando datos del autoguardado local');
+        console.log('🔄 Recuperando datos del autoguardado local');
         initializeFormWithLocalData(localData);
         setFormData(localData);
         setShowRecoveryMessage(true);
@@ -49,13 +61,16 @@ const BriefForm = () => {
         // Ocultar mensaje después de 5 segundos
         setTimeout(() => setShowRecoveryMessage(false), 5000);
       } else {
-        console.log('Inicializando formulario con datos:', hasExistingBrief ? 'brief existente' : 'formulario vacío');
-        setFormData(getInitialFormData());
+        console.log('📝 Inicializando formulario con datos:', hasExistingBrief ? 'brief existente' : 'formulario vacío');
+        const initialData = getInitialFormData();
+        console.log('📊 Datos iniciales:', initialData);
+        setFormData(initialData);
       }
       
       formInitialized.current = true;
+      console.log('✅ Formulario inicializado correctamente');
     }
-  }, [briefLoading, hasExistingBrief, getLocalData, isLocalDataNewer, getInitialFormData, initializeFormWithLocalData]);
+  }, [briefLoading, hasExistingBrief, getLocalData, isLocalDataNewer, getInitialFormData, initializeFormWithLocalData, user?.emailAddresses, hasLocalData]);
 
   const handleSubmit = async () => {
     console.log('🚀 INICIANDO ENVÍO DEL BRIEF');

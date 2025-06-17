@@ -24,28 +24,44 @@ export const useUserSync = () => {
       setSyncStatus('syncing');
 
       try {
-        console.log('Sincronizando usuario con Supabase:', userEmail);
+        console.log('🔄 Sincronizando usuario con Supabase:', userEmail);
         
-        // Usar la función SECURITY DEFINER para asegurar que el usuario tenga un rol
+        // Primero verificar si el usuario ya existe
+        const { data: existingRole, error: checkError } = await supabase
+          .from('user_roles')
+          .select('*')
+          .eq('user_id', userEmail)
+          .single();
+
+        if (checkError && checkError.code !== 'PGRST116') { // PGRST116 = no rows returned
+          console.error('❌ Error verificando usuario existente:', checkError);
+          setSyncStatus('error');
+          return;
+        }
+
+        if (existingRole) {
+          console.log('✅ Usuario ya existe en base de datos:', existingRole);
+          setSyncStatus('success');
+          return;
+        }
+
+        // Si no existe, crear el usuario usando la función SECURITY DEFINER
+        console.log('➕ Creando nuevo usuario en base de datos...');
         const { error: ensureRoleError } = await supabase.rpc('ensure_user_role', {
           _email: userEmail
         });
 
         if (ensureRoleError) {
-          console.error('Error asegurando rol de usuario:', ensureRoleError);
-          // No marcamos como error crítico si el usuario ya existe
-          if (!ensureRoleError.message.includes('duplicate key')) {
-            setSyncStatus('error');
-            return;
-          }
+          console.error('❌ Error asegurando rol de usuario:', ensureRoleError);
+          setSyncStatus('error');
+          return;
         }
 
-        console.log('Usuario sincronizado exitosamente');
+        console.log('✅ Usuario sincronizado exitosamente');
         setSyncStatus('success');
       } catch (error) {
-        console.error('Error en sincronización de usuario:', error);
-        // Solo marcar como error si es un problema real, no si el usuario ya existe
-        setSyncStatus('success'); // Asumir éxito si llegamos aquí
+        console.error('💥 Error en sincronización de usuario:', error);
+        setSyncStatus('error');
       }
     };
 

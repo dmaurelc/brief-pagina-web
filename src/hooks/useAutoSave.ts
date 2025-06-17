@@ -37,32 +37,70 @@ export const useAutoSave = (formData: BriefFormData, userEmail?: string) => {
 
   // Función para verificar si hay datos guardados
   const hasLocalData = () => {
+    console.log('🔍 Verificando datos locales:', {
+      savedData: !!savedData,
+      userEmail,
+      savedUserEmail: savedData?.userEmail,
+      match: savedData?.userEmail === userEmail
+    });
     return savedData && savedData.userEmail === userEmail && savedData.data;
   };
 
   // Función para obtener datos guardados
   const getLocalData = (): BriefFormData | null => {
+    console.log('📥 Obteniendo datos locales...');
     if (hasLocalData()) {
+      console.log('✅ Datos locales encontrados:', savedData!.data);
       return savedData!.data;
     }
+    console.log('❌ No hay datos locales válidos');
     return null;
   };
 
   // Función para determinar si los datos locales son más recientes
   const isLocalDataNewer = (existingBriefTimestamp?: string): boolean => {
-    if (!hasLocalData()) return false;
+    if (!hasLocalData()) {
+      console.log('❌ No hay datos locales para comparar');
+      return false;
+    }
     
-    if (!existingBriefTimestamp) return true;
+    if (!existingBriefTimestamp) {
+      console.log('✅ No hay brief existente, datos locales son más nuevos');
+      return true;
+    }
     
     const localTimestamp = savedData!.timestamp;
     const briefTimestamp = new Date(existingBriefTimestamp).getTime();
     
-    return localTimestamp > briefTimestamp;
+    const isNewer = localTimestamp > briefTimestamp;
+    console.log('📅 Comparando timestamps:', {
+      local: new Date(localTimestamp).toLocaleString(),
+      brief: new Date(briefTimestamp).toLocaleString(),
+      localIsNewer: isNewer
+    });
+    
+    return isNewer;
   };
 
   // Auto-guardar con debounce
   useEffect(() => {
-    if (!userEmail) return;
+    if (!userEmail) {
+      console.log('⚠️ No hay email de usuario, no se puede autoguardar');
+      return;
+    }
+
+    // Verificar si hay algo que guardar (al menos un campo con contenido)
+    const hasContent = Object.values(formData).some(value => {
+      if (Array.isArray(value)) {
+        return value.length > 0;
+      }
+      return value && value.toString().trim() !== '';
+    });
+
+    if (!hasContent) {
+      console.log('⚠️ No hay contenido para guardar');
+      return;
+    }
 
     // Limpiar timeout anterior
     if (timeoutRef.current) {
@@ -75,13 +113,16 @@ export const useAutoSave = (formData: BriefFormData, userEmail?: string) => {
       
       // Solo guardar si han pasado al menos 500ms desde el último guardado
       if (now - lastSaveRef.current > 500) {
-        console.log('Auto-guardando formulario...');
-        setSavedData({
+        console.log('💾 Auto-guardando formulario para usuario:', userEmail);
+        const dataToSave = {
           data: formData,
           timestamp: now,
           userEmail: userEmail
-        });
+        };
+        console.log('📊 Datos a guardar:', dataToSave);
+        setSavedData(dataToSave);
         lastSaveRef.current = now;
+        console.log('✅ Formulario auto-guardado exitosamente');
       }
     }, AUTOSAVE_DELAY);
 
@@ -94,8 +135,9 @@ export const useAutoSave = (formData: BriefFormData, userEmail?: string) => {
 
   // Limpiar datos cuando se envíe exitosamente
   const clearAutoSave = () => {
-    console.log('Limpiando auto-guardado...');
+    console.log('🧹 Limpiando auto-guardado...');
     clearStorage();
+    console.log('✅ Auto-guardado limpiado');
   };
 
   return {
