@@ -1,18 +1,17 @@
 import { useEffect, useState } from 'react';
-import { useUser, useClerk } from '@clerk/clerk-react';
+import { useUser } from '@clerk/clerk-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Eye, ArrowLeft, Shield, AlertCircle, FileText, Clock, CheckCircle, Send, ChevronDown, MoreVertical, LogOut } from 'lucide-react';
+import { Eye, Shield, AlertCircle, FileText, Clock, CheckCircle, Send, MoreVertical, LogOut } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Tables } from '@/integrations/supabase/types';
 import BriefDetailModal from '@/components/BriefDetailModal';
 import {
   DndContext,
   DragEndEvent,
-  DragOverlay,
   DragStartEvent,
   PointerSensor,
   useSensor,
@@ -34,6 +33,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import Header from '@/components/Header';
 
 type Brief = Tables<'briefs'>;
 
@@ -206,7 +206,6 @@ const DraggableBriefCard = ({
 
 const AdminDashboard = () => {
   const { user, isLoaded } = useUser();
-  const { signOut } = useClerk();
   const navigate = useNavigate();
   const [selectedBrief, setSelectedBrief] = useState<Brief | null>(null);
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
@@ -380,10 +379,6 @@ const AdminDashboard = () => {
     setIsDetailModalOpen(true);
   };
 
-  const handleSignOut = () => {
-    signOut(() => navigate('/'));
-  };
-
   const handleDragStart = (event: DragStartEvent) => {
     setActiveId(event.active.id as string);
     console.log('🎯 Drag iniciado para brief:', event.active.id);
@@ -481,10 +476,13 @@ const AdminDashboard = () => {
   // Mostrar loading mientras se verifica autenticación y roles
   if (!isLoaded || adminCheckLoading) {
     return (
-      <div className="min-h-screen bg-accent-700 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-          <p className="text-muted-foreground">Verificando permisos...</p>
+      <div className="min-h-screen bg-accent-700">
+        <Header />
+        <div className="flex items-center justify-center py-20">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+            <p className="text-muted-foreground">Verificando permisos...</p>
+          </div>
         </div>
       </div>
     );
@@ -493,17 +491,20 @@ const AdminDashboard = () => {
   // Mostrar error si no está autenticado
   if (!user) {
     return (
-      <div className="min-h-screen bg-accent-700 flex items-center justify-center">
-        <Card className="max-w-md bg-card border-border">
-          <CardContent className="p-6 text-center">
-            <AlertCircle className="w-12 h-12 text-destructive mx-auto mb-4" />
-            <h2 className="text-xl font-semibold mb-2 text-foreground">Acceso Denegado</h2>
-            <p className="text-muted-foreground mb-4">Debes iniciar sesión para acceder al panel de administración.</p>
-            <Button onClick={() => navigate('/')} className="w-full">
-              Ir al inicio
-            </Button>
-          </CardContent>
-        </Card>
+      <div className="min-h-screen bg-accent-700">
+        <Header />
+        <div className="flex items-center justify-center py-20">
+          <Card className="max-w-md bg-card border-border">
+            <CardContent className="p-6 text-center">
+              <AlertCircle className="w-12 h-12 text-destructive mx-auto mb-4" />
+              <h2 className="text-xl font-semibold mb-2 text-foreground">Acceso Denegado</h2>
+              <p className="text-muted-foreground mb-4">Debes iniciar sesión para acceder al panel de administración.</p>
+              <Button onClick={() => navigate('/')} className="w-full">
+                Ir al inicio
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
       </div>
     );
   }
@@ -511,30 +512,32 @@ const AdminDashboard = () => {
   // Mostrar error si no es administrador
   if (isAdmin === false) {
     return (
-      <div className="min-h-screen bg-accent-700 flex items-center justify-center">
-        <Card className="max-w-md bg-card border-border">
-          <CardContent className="p-6 text-center">
-            <Shield className="w-12 h-12 text-destructive mx-auto mb-4" />
-            <h2 className="text-xl font-semibold mb-2 text-foreground">Acceso Denegado</h2>
-            <p className="text-muted-foreground mb-4">
-              No tienes permisos de administrador para acceder a esta página.
-            </p>
-            <Button onClick={() => navigate('/')} variant="outline">
-              <ArrowLeft className="w-4 h-4 mr-2" />
-              Volver al inicio
-            </Button>
-          </CardContent>
-        </Card>
+      <div className="min-h-screen bg-accent-700">
+        <Header />
+        <div className="flex items-center justify-center py-20">
+          <Card className="max-w-md bg-card border-border">
+            <CardContent className="p-6 text-center">
+              <Shield className="w-12 h-12 text-destructive mx-auto mb-4" />
+              <h2 className="text-xl font-semibold mb-2 text-foreground">Acceso Denegado</h2>
+              <p className="text-muted-foreground mb-4">
+                No tienes permisos de administrador para acceder a esta página.
+              </p>
+            </CardContent>
+          </Card>
+        </div>
       </div>
     );
   }
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-accent-700 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-          <p className="text-muted-foreground">Cargando presupuestos...</p>
+      <div className="min-h-screen bg-accent-700">
+        <Header />
+        <div className="flex items-center justify-center py-20">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+            <p className="text-muted-foreground">Cargando presupuestos...</p>
+          </div>
         </div>
       </div>
     );
@@ -542,17 +545,16 @@ const AdminDashboard = () => {
 
   if (error) {
     return (
-      <div className="min-h-screen bg-accent-700 flex items-center justify-center">
-        <Card className="max-w-md bg-card border-border">
-          <CardContent className="p-6 text-center">
-            <AlertCircle className="w-12 h-12 text-destructive mx-auto mb-4" />
-            <p className="text-destructive mb-4">Error al cargar los presupuestos</p>
-            <Button onClick={() => navigate('/')} variant="outline">
-              <ArrowLeft className="w-4 h-4 mr-2" />
-              Volver al inicio
-            </Button>
-          </CardContent>
-        </Card>
+      <div className="min-h-screen bg-accent-700">
+        <Header />
+        <div className="flex items-center justify-center py-20">
+          <Card className="max-w-md bg-card border-border">
+            <CardContent className="p-6 text-center">
+              <AlertCircle className="w-12 h-12 text-destructive mx-auto mb-4" />
+              <p className="text-destructive mb-4">Error al cargar los presupuestos</p>
+            </CardContent>
+          </Card>
+        </div>
       </div>
     );
   }
@@ -561,33 +563,18 @@ const AdminDashboard = () => {
 
   return (
     <div className="min-h-screen bg-accent-700">
+      <Header />
+      
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Header */}
         <div className="mb-8">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-3xl font-bold text-foreground">Dashboard Admin</h1>
-              <p className="text-muted-foreground mt-2">
-                Gestión de presupuestos y propuestas
-              </p>
-              <div className="flex items-center gap-2 mt-2">
-                <Shield className="w-4 h-4 text-green-400" />
-                <span className="text-sm text-green-400">Admin: {user?.emailAddresses?.[0]?.emailAddress}</span>
-              </div>
-            </div>
-            <div className="flex gap-3">
-              <Button onClick={() => navigate('/my-account')} variant="outline" className="border-accent-600 hover:bg-accent-800">
-                Mi Cuenta
-              </Button>
-              <Button onClick={() => navigate('/')} variant="outline" className="border-accent-600 hover:bg-accent-800">
-                <ArrowLeft className="w-4 h-4 mr-2" />
-                Inicio
-              </Button>
-              <Button onClick={handleSignOut} variant="outline" className="border-accent-600 hover:bg-accent-800">
-                <LogOut className="w-4 h-4 mr-2" />
-                Cerrar Sesión
-              </Button>
-            </div>
+          <h1 className="text-3xl font-bold text-foreground">Dashboard Admin</h1>
+          <p className="text-muted-foreground mt-2">
+            Gestión de presupuestos y propuestas
+          </p>
+          <div className="flex items-center gap-2 mt-2">
+            <Shield className="w-4 h-4 text-green-400" />
+            <span className="text-sm text-green-400">Admin: {user?.emailAddresses?.[0]?.emailAddress}</span>
           </div>
         </div>
 
@@ -688,6 +675,15 @@ const AdminDashboard = () => {
           />
         )}
       </div>
+
+      {/* Footer */}
+      <footer className="bg-card border-t border-border mt-20">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <div className="text-center text-muted-foreground">
+            <p>&copy; 2025 Brief Página Web - Generador de presupuestos web personalizados por DMaurel.</p>
+          </div>
+        </div>
+      </footer>
     </div>
   );
 };

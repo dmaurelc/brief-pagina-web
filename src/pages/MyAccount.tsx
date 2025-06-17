@@ -6,10 +6,11 @@ import { Button } from '@/components/ui/button';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, User, Shield, FileText, Clock, CheckCircle, AlertCircle } from 'lucide-react';
+import { User, Shield, FileText, Clock, CheckCircle, AlertCircle } from 'lucide-react';
 import { Tables } from '@/integrations/supabase/types';
 import { useAdminRole } from '@/hooks/useAdminRole';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import Header from '@/components/Header';
 
 type Brief = Tables<'briefs'>;
 
@@ -93,10 +94,13 @@ const MyAccount = () => {
 
   if (!isLoaded || adminLoading) {
     return (
-      <div className="min-h-screen bg-accent-700 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-          <p className="text-muted-foreground">Cargando...</p>
+      <div className="min-h-screen bg-accent-700">
+        <Header />
+        <div className="flex items-center justify-center py-20">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+            <p className="text-muted-foreground">Cargando...</p>
+          </div>
         </div>
       </div>
     );
@@ -104,54 +108,51 @@ const MyAccount = () => {
 
   if (!user) {
     return (
-      <div className="min-h-screen bg-accent-700 flex items-center justify-center">
-        <Card className="max-w-md">
-          <CardContent className="p-6 text-center">
-            <User className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-            <h2 className="text-xl font-semibold mb-2">Inicia Sesión</h2>
-            <p className="text-muted-foreground mb-4">
-              Debes iniciar sesión para acceder a tu cuenta.
-            </p>
-            <Button onClick={() => navigate('/')} className="w-full">
-              Ir al inicio
-            </Button>
-          </CardContent>
-        </Card>
+      <div className="min-h-screen bg-accent-700">
+        <Header />
+        <div className="flex items-center justify-center py-20">
+          <Card className="max-w-md">
+            <CardContent className="p-6 text-center">
+              <User className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+              <h2 className="text-xl font-semibold mb-2">Inicia Sesión</h2>
+              <p className="text-muted-foreground mb-4">
+                Debes iniciar sesión para acceder a tu cuenta.
+              </p>
+              <Button onClick={() => navigate('/')} className="w-full">
+                Ir al inicio
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
       </div>
     );
   }
 
   return (
     <div className="min-h-screen bg-accent-700">
+      <Header />
+      
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="mb-8">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-3xl font-bold text-foreground">Mi Cuenta</h1>
-              <p className="text-muted-foreground mt-2">
-                Gestiona tu perfil y revisa tus presupuestos
-              </p>
-              <div className="flex items-center gap-2 mt-2">
-                {isAdmin ? (
-                  <>
-                    <Shield className="w-4 h-4 text-green-600" />
-                    <span className="text-sm text-green-600">Administrador</span>
-                  </>
-                ) : (
-                  <>
-                    <User className="w-4 h-4 text-blue-600" />
-                    <span className="text-sm text-blue-600">Usuario</span>
-                  </>
-                )}
-                <span className="text-sm text-muted-foreground">
-                  {user.emailAddresses?.[0]?.emailAddress}
-                </span>
-              </div>
-            </div>
-            <Button onClick={() => navigate('/')} variant="outline">
-              <ArrowLeft className="w-4 h-4 mr-2" />
-              Volver al inicio
-            </Button>
+          <h1 className="text-3xl font-bold text-foreground">Mi Cuenta</h1>
+          <p className="text-muted-foreground mt-2">
+            Gestiona tu perfil y revisa tus presupuestos
+          </p>
+          <div className="flex items-center gap-2 mt-2">
+            {isAdmin ? (
+              <>
+                <Shield className="w-4 h-4 text-green-600" />
+                <span className="text-sm text-green-600">Administrador</span>
+              </>
+            ) : (
+              <>
+                <User className="w-4 h-4 text-blue-600" />
+                <span className="text-sm text-blue-600">Usuario</span>
+              </>
+            )}
+            <span className="text-sm text-muted-foreground">
+              {user.emailAddresses?.[0]?.emailAddress}
+            </span>
           </div>
         </div>
 
@@ -190,15 +191,6 @@ const MyAccount = () => {
                     )}
                   </div>
                 </div>
-                {isAdmin && (
-                  <Button 
-                    onClick={() => navigate('/admin')} 
-                    className="w-full mt-4"
-                  >
-                    <Shield className="w-4 h-4 mr-2" />
-                    Panel de Administración
-                  </Button>
-                )}
               </CardContent>
             </Card>
           </div>
@@ -237,13 +229,6 @@ const MyAccount = () => {
                             </p>
                           </div>
                         ))}
-                        <Button 
-                          onClick={() => navigate('/admin')} 
-                          variant="outline" 
-                          className="w-full"
-                        >
-                          Ver todos los presupuestos
-                        </Button>
                       </div>
                     ) : (
                       <p className="text-muted-foreground text-center py-4">
@@ -321,7 +306,7 @@ const MyAccount = () => {
                       <p className="text-muted-foreground mb-4">
                         ¡Solicita tu primer presupuesto para comenzar!
                       </p>
-                      <Button onClick={() => navigate('/')}>
+                      <Button onClick={() => navigate('/brief')}>
                         Solicitar Presupuesto
                       </Button>
                     </div>
@@ -332,6 +317,15 @@ const MyAccount = () => {
           </div>
         </div>
       </div>
+
+      {/* Footer */}
+      <footer className="bg-card border-t border-border mt-20">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <div className="text-center text-muted-foreground">
+            <p>&copy; 2025 Brief Página Web - Generador de presupuestos web personalizados por DMaurel.</p>
+          </div>
+        </div>
+      </footer>
     </div>
   );
 };

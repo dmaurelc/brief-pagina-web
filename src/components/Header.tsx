@@ -2,7 +2,7 @@
 import { SignedIn, SignedOut, SignInButton, UserButton, useClerk } from '@clerk/clerk-react';
 import { Button } from '@/components/ui/button';
 import { useNavigate } from 'react-router-dom';
-import { Shield, User, LogOut } from 'lucide-react';
+import { Shield, User, LogOut, Home, FileText } from 'lucide-react';
 import { useAdminRole } from '@/hooks/useAdminRole';
 import {
   DropdownMenu,
@@ -60,16 +60,27 @@ const Header = () => {
                   <DropdownMenuTrigger asChild>
                     <Button variant="outline" size="sm">
                       <User className="w-4 h-4 mr-2" />
-                      Menú
+                      {isAdmin ? (
+                        <>
+                          <Shield className="w-3 h-3 mr-1" />
+                          Admin
+                        </>
+                      ) : (
+                        'Menú'
+                      )}
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end" className="w-48">
+                    <DropdownMenuItem onClick={() => navigate('/')}>
+                      <Home className="w-4 h-4 mr-2" />
+                      Inicio
+                    </DropdownMenuItem>
                     <DropdownMenuItem onClick={() => navigate('/my-account')}>
                       <User className="w-4 h-4 mr-2" />
                       Mi Cuenta
                     </DropdownMenuItem>
                     <DropdownMenuItem onClick={() => navigate('/brief')}>
-                      <User className="w-4 h-4 mr-2" />
+                      <FileText className="w-4 h-4 mr-2" />
                       Nuevo Presupuesto
                     </DropdownMenuItem>
                     {isAdmin && (
