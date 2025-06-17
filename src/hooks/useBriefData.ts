@@ -3,6 +3,9 @@ import { useState, useEffect, useCallback } from 'react';
 import { useUser } from '@clerk/clerk-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAutoSave } from './useAutoSave';
+import type { Database } from '@/integrations/supabase/types';
+
+type BriefStatus = Database['public']['Enums']['brief_status'];
 
 interface BriefFormData {
   companyName: string;
@@ -93,12 +96,12 @@ export const useBriefData = () => {
       try {
         console.log('Buscando brief existente para:', user.emailAddresses[0].emailAddress);
         
-        // Buscar briefs no enviados (incompletos) primero
+        // Buscar briefs no enviados (incompletos) primero - usando estados válidos excepto 'completed'
         const { data: incompleteBriefs, error: incompleteError } = await supabase
           .from('briefs')
           .select('*')
           .eq('email', user.emailAddresses[0].emailAddress)
-          .neq('status', 'sent')
+          .not('status', 'eq', 'completed')
           .order('created_at', { ascending: false })
           .limit(1);
 
@@ -148,7 +151,7 @@ export const useBriefData = () => {
         competitor_websites: formData.competitorWebsites || null,
         design_preferences: formData.designPreferences || null,
         additional_notes: formData.additionalNotes || null,
-        status: 'sent'
+        status: 'completed' as BriefStatus
       };
 
       console.log('Guardando brief con datos:', briefData);
