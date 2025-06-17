@@ -8,11 +8,12 @@ interface UserSyncProviderProps {
 }
 
 const UserSyncProvider = ({ children }: UserSyncProviderProps) => {
-  const { isSignedIn } = useUser();
+  const { isSignedIn, isLoaded } = useUser();
   const { syncStatus } = useUserSync();
 
-  // Si el usuario está autenticado pero aún se está sincronizando, mostrar loading
-  if (isSignedIn && syncStatus === 'syncing') {
+  // Solo mostrar loading si el usuario está autenticado, Clerk está cargado, 
+  // y específicamente estamos en el estado inicial de sincronización
+  if (isSignedIn && isLoaded && syncStatus === 'syncing') {
     return (
       <div className="min-h-screen bg-accent-700 flex items-center justify-center">
         <div className="text-center">
@@ -23,6 +24,7 @@ const UserSyncProvider = ({ children }: UserSyncProviderProps) => {
     );
   }
 
+  // En todos los demás casos, mostrar la aplicación normalmente
   return <>{children}</>;
 };
 

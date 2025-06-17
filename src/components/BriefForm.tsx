@@ -1,36 +1,26 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useUser } from '@clerk/clerk-react';
-import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import { useUserSync } from '@/hooks/useUserSync';
+import { useBriefData } from '@/hooks/useBriefData';
 import BriefFormSteps from './BriefFormSteps';
 
 const BriefForm = () => {
   const { user } = useUser();
   const { toast } = useToast();
   const { isUserSynced, syncStatus } = useUserSync();
+  const { getInitialFormData, saveBrief, hasExistingBrief, loading: briefLoading } = useBriefData();
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [formData, setFormData] = useState({
-    companyName: '',
-    contactName: '',
-    email: user?.emailAddresses?.[0]?.emailAddress || '',
-    phone: '',
-    industry: '',
-    projectType: '',
-    projectDescription: '',
-    features: [] as string[],
-    budget: '',
-    timeline: '',
-    pages: [] as string[],
-    targetAudience: '',
-    mainGoals: '',
-    existingWebsite: '',
-    competitorWebsites: '',
-    designPreferences: '',
-    additionalNotes: ''
-  });
+  const [formData, setFormData] = useState(getInitialFormData());
+
+  // Actualizar formData cuando se carguen los datos del brief
+  useEffect(() => {
+    if (!briefLoading) {
+      setFormData(getInitialFormData());
+    }
+  }, [briefLoading, getInitialFormData]);
 
   const handleSubmit = async () => {
     if (!user?.emailAddresses?.[0]?.emailAddress) {
@@ -63,76 +53,23 @@ const BriefForm = () => {
     setIsSubmitting(true);
 
     try {
-      const briefData = {
-        company_name: formData.companyName,
-        contact_name: formData.contactName,
-        email: user.emailAddresses[0].emailAddress,
-        phone: formData.phone || null,
-        industry: formData.industry,
-        project_type: formData.projectType,
-        project_description: formData.projectDescription,
-        features: formData.features,
-        budget: formData.budget,
-        timeline: formData.timeline,
-        pages: formData.pages,
-        target_audience: formData.targetAudience,
-        main_goals: formData.mainGoals,
-        existing_website: formData.existingWebsite || null,
-        competitor_websites: formData.competitorWebsites || null,
-        design_preferences: formData.designPreferences || null,
-        additional_notes: formData.additionalNotes || null
-      };
+      console.log('Guardando brief con datos:', formData);
 
-      console.log('Enviando brief con datos:', briefData);
-
-      const { data, error } = await supabase
-        .from('briefs')
-        .insert(briefData)
-        .select();
-
-      if (error) {
-        console.error('Error guardando brief:', error);
-        toast({
-          title: "Error al enviar",
-          description: `Hubo un problema al guardar tu brief: ${error.message}`,
-          variant: "destructive",
-        });
-        return;
-      }
-
+      const data = await saveBrief(formData);
       console.log('Brief guardado exitosamente:', data);
       
       toast({
-        title: "Brief enviado exitosamente",
-        description: "Hemos recibido tu solicitud de presupuesto. Te contactaremos pronto.",
-      });
-
-      // Reset form
-      setFormData({
-        companyName: '',
-        contactName: '',
-        email: user.emailAddresses[0].emailAddress,
-        phone: '',
-        industry: '',
-        projectType: '',
-        projectDescription: '',
-        features: [],
-        budget: '',
-        timeline: '',
-        pages: [],
-        targetAudience: '',
-        mainGoals: '',
-        existingWebsite: '',
-        competitorWebsites: '',
-        designPreferences: '',
-        additionalNotes: ''
+        title: hasExistingBrief ? "Brief actualizado exitosamente" : "Brief enviado exitosamente",
+        description: hasExistingBrief 
+          ? "Tus cambios han sido guardados correctamente."
+          : "Hemos recibido tu solicitud de presupuesto. Te contactaremos pronto.",
       });
 
     } catch (error) {
-      console.error('Error inesperado:', error);
+      console.error('Error guardando brief:', error);
       toast({
-        title: "Error inesperado",
-        description: "Ocurrió un error inesperado. Por favor, intenta nuevamente.",
+        title: "Error al guardar",
+        description: `Hubo un problema al guardar tu brief: ${error instanceof Error ? error.message : 'Error desconocido'}`,
         variant: "destructive",
       });
     } finally {
@@ -140,12 +77,30 @@ const BriefForm = () => {
     }
   };
 
+  if (briefLoading) {
+    return (
+      <Card className="w-full max-w-4xl mx-auto bg-card border-border">
+        <CardContent className="flex items-center justify-center py-12">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+            <p className="text-muted-foreground">Cargando datos del formulario...</p>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
   return (
     <Card className="w-full max-w-4xl mx-auto bg-card border-border">
       <CardHeader>
         <CardTitle className="text-2xl font-medium text-center text-foreground">
-          Solicitud de Presupuesto Web
+          {hasExistingBrief ? 'Actualizar Solicitud de Presupuesto Web' : 'Solicitud de Presupuesto Web'}
         </CardTitle>
+        {hasExistingBrief && (
+          <p className="text-center text-muted-foreground">
+            Se han cargado los datos de tu solicitud anterior. Puedes modificar cualquier campo y guardar los cambios.
+          </p>
+        )}
       </CardHeader>
       <CardContent>
         {syncStatus === 'error' && (
