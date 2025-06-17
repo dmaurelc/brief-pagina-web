@@ -3,7 +3,6 @@ import { useState, useEffect, useRef } from 'react';
 import { useUser } from '@clerk/clerk-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
-import { useUserSync } from '@/hooks/useUserSync';
 import { useBriefData } from '@/hooks/useBriefData';
 import { useAutoSave } from '@/hooks/useAutoSave';
 import { validateAllRequiredFields } from '@/utils/formValidation';
@@ -13,7 +12,6 @@ import AutoSaveIndicator from './AutoSaveIndicator';
 const BriefForm = () => {
   const { user, isLoaded } = useUser();
   const { toast } = useToast();
-  const { isUserSynced } = useUserSync();
   const { 
     getInitialFormData, 
     saveBrief, 
@@ -89,6 +87,7 @@ const BriefForm = () => {
       });
 
     } catch (error) {
+      console.error('Error completo al enviar brief:', error);
       toast({
         title: "Error al enviar",
         description: `Hubo un problema al enviar tu brief: ${error instanceof Error ? error.message : 'Error desconocido'}`,

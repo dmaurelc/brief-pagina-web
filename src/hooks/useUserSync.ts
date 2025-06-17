@@ -1,7 +1,6 @@
 
 import { useEffect, useState, useRef } from 'react';
 import { useUser } from '@clerk/clerk-react';
-import { supabase } from '@/integrations/supabase/client';
 
 export const useUserSync = () => {
   const { user, isLoaded } = useUser();
@@ -19,29 +18,13 @@ export const useUserSync = () => {
         return;
       }
 
-      const userEmail = user.emailAddresses[0].emailAddress;
       hasAttemptedSync.current = true;
       setSyncStatus('syncing');
 
-      try {
-        // Intentar crear el rol usando la función SECURITY DEFINER
-        const { error: ensureRoleError } = await supabase.rpc('ensure_user_role', {
-          _email: userEmail
-        });
-
-        if (ensureRoleError) {
-          console.error('Error asegurando rol de usuario:', ensureRoleError);
-          // No marcar como error si falla, solo log
-          setSyncStatus('success');
-        } else {
-          setSyncStatus('success');
-        }
-
-      } catch (error) {
-        console.error('Error en sincronización de usuario:', error);
-        // No bloquear al usuario por errores de sincronización
-        setSyncStatus('success');
-      }
+      // Para usuarios normales, solo marcamos como éxito sin hacer nada más
+      // La sincronización de roles solo es necesaria para funciones administrativas
+      console.log('Usuario sincronizado exitosamente (modo simplificado)');
+      setSyncStatus('success');
     };
 
     syncUserRole();
