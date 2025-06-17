@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useRef } from 'react';
 import { useUser } from '@clerk/clerk-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -49,12 +48,13 @@ const BriefForm = () => {
     if (!briefLoading && !formInitialized.current && user?.emailAddresses?.[0]?.emailAddress) {
       console.log('📊 Iniciando proceso de inicialización...');
       
+      // Primero intentar recuperar datos locales
       const localData = getLocalData();
       console.log('💾 Datos locales obtenidos:', localData);
       
+      // Priorizar datos locales si existen y son más recientes
       if (localData && (!hasExistingBrief || isLocalDataNewer())) {
         console.log('🔄 Recuperando datos del autoguardado local');
-        initializeFormWithLocalData(localData);
         setFormData(localData);
         setShowRecoveryMessage(true);
         
@@ -70,7 +70,7 @@ const BriefForm = () => {
       formInitialized.current = true;
       console.log('✅ Formulario inicializado correctamente');
     }
-  }, [briefLoading, hasExistingBrief, getLocalData, isLocalDataNewer, getInitialFormData, initializeFormWithLocalData, user?.emailAddresses, hasLocalData]);
+  }, [briefLoading, hasExistingBrief, getLocalData, isLocalDataNewer, getInitialFormData, user?.emailAddresses, hasLocalData]);
 
   const handleSubmit = async () => {
     console.log('🚀 INICIANDO ENVÍO DEL BRIEF');

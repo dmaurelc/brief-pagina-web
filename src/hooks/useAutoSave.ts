@@ -30,7 +30,7 @@ export const useAutoSave = (formData: BriefFormData, userEmail?: string) => {
     data: BriefFormData;
     timestamp: number;
     userEmail: string;
-  } | null>(STORAGE_KEY, null);
+  } | null>(STORAGE_KEY, null, true); // autoSave habilitado
   
   const timeoutRef = useRef<NodeJS.Timeout>();
   const lastSaveRef = useRef<number>(0);
@@ -43,6 +43,19 @@ export const useAutoSave = (formData: BriefFormData, userEmail?: string) => {
       savedUserEmail: savedData?.userEmail,
       match: savedData?.userEmail === userEmail
     });
+    
+    // Verificar también directamente en localStorage
+    try {
+      const rawData = window.localStorage.getItem(STORAGE_KEY);
+      console.log('🔍 Raw localStorage data:', rawData);
+      if (rawData) {
+        const parsed = JSON.parse(rawData);
+        console.log('🔍 Parsed localStorage data:', parsed);
+      }
+    } catch (error) {
+      console.error('❌ Error checking localStorage directly:', error);
+    }
+    
     return savedData && savedData.userEmail === userEmail && savedData.data;
   };
 
@@ -120,9 +133,22 @@ export const useAutoSave = (formData: BriefFormData, userEmail?: string) => {
           userEmail: userEmail
         };
         console.log('📊 Datos a guardar:', dataToSave);
+        
+        // Guardar usando setSavedData (que automáticamente persistirá en localStorage)
         setSavedData(dataToSave);
         lastSaveRef.current = now;
+        
         console.log('✅ Formulario auto-guardado exitosamente');
+        
+        // Verificación adicional que los datos se guardaron
+        setTimeout(() => {
+          try {
+            const verification = window.localStorage.getItem(STORAGE_KEY);
+            console.log('🔍 Verificación post-guardado localStorage:', verification);
+          } catch (error) {
+            console.error('❌ Error verificando localStorage:', error);
+          }
+        }, 100);
       }
     }, AUTOSAVE_DELAY);
 
