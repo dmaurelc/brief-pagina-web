@@ -11,9 +11,9 @@ import BriefFormSteps from './BriefFormSteps';
 import AutoSaveIndicator from './AutoSaveIndicator';
 
 const BriefForm = () => {
-  const { user } = useUser();
+  const { user, isLoaded } = useUser();
   const { toast } = useToast();
-  const { isUserSynced, syncStatus } = useUserSync();
+  const { isUserSynced } = useUserSync();
   const { 
     getInitialFormData, 
     saveBrief, 
@@ -59,28 +59,10 @@ const BriefForm = () => {
   }, [briefLoading, hasExistingBrief, getLocalData, isLocalDataNewer, getInitialFormData, user?.emailAddresses, toast]);
 
   const handleSubmit = async () => {
-    if (!user?.emailAddresses?.[0]?.emailAddress) {
+    if (!user?.emailAddresses?.[0]?.emailAddress || !isLoaded) {
       toast({
         title: "Error de autenticación",
         description: "Debes estar autenticado para enviar un brief",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    if (!isUserSynced) {
-      toast({
-        title: "Sincronización pendiente",
-        description: "Esperando sincronización del usuario. Intenta nuevamente en unos segundos.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    if (syncStatus === 'error') {
-      toast({
-        title: "Error de sincronización",
-        description: "Hubo un problema sincronizando tu usuario. Recarga la página e intenta nuevamente.",
         variant: "destructive",
       });
       return;
@@ -147,20 +129,12 @@ const BriefForm = () => {
           <AutoSaveIndicator lastSaved={lastSaved} />
         </div>
       </CardHeader>
-      <CardContent>
-        {syncStatus === 'error' && (
-          <div className="mb-6 p-4 bg-destructive/10 border border-destructive/20 rounded-lg">
-            <p className="text-destructive text-sm">
-              Hubo un problema sincronizando tu usuario. Recarga la página e intenta nuevamente.
-            </p>
-          </div>
-        )}
-        
+      <CardContent>        
         <BriefFormSteps 
           formData={formData} 
           setFormData={setFormData} 
           onSubmit={handleSubmit}
-          isSubmitting={isSubmitting || !isUserSynced}
+          isSubmitting={isSubmitting || !isLoaded}
         />
       </CardContent>
     </Card>
