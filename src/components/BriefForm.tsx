@@ -37,20 +37,11 @@ const BriefForm = () => {
 
   // Inicializar formulario con datos existentes o locales
   useEffect(() => {
-    console.log('🚀 Inicializando formulario:', {
-      briefLoading,
-      formInitialized: formInitialized.current,
-      hasExistingBrief,
-      hasLocalData,
-      userEmail: user?.emailAddresses?.[0]?.emailAddress
-    });
-
     if (!briefLoading && !formInitialized.current && user?.emailAddresses?.[0]?.emailAddress) {
-      console.log('📊 Iniciando proceso de inicialización...');
+      console.log('📊 Inicializando formulario...');
       
       // Primero intentar recuperar datos locales
       const localData = getLocalData();
-      console.log('💾 Datos locales obtenidos:', localData);
       
       // Priorizar datos locales si existen y son más recientes
       if (localData && (!hasExistingBrief || isLocalDataNewer())) {
@@ -61,27 +52,20 @@ const BriefForm = () => {
         // Ocultar mensaje después de 5 segundos
         setTimeout(() => setShowRecoveryMessage(false), 5000);
       } else {
-        console.log('📝 Inicializando formulario con datos:', hasExistingBrief ? 'brief existente' : 'formulario vacío');
+        console.log('📝 Inicializando con datos del servidor o formulario vacío');
         const initialData = getInitialFormData();
-        console.log('📊 Datos iniciales:', initialData);
         setFormData(initialData);
       }
       
       formInitialized.current = true;
-      console.log('✅ Formulario inicializado correctamente');
+      console.log('✅ Formulario inicializado');
     }
   }, [briefLoading, hasExistingBrief, getLocalData, isLocalDataNewer, getInitialFormData, user?.emailAddresses, hasLocalData]);
 
   const handleSubmit = async () => {
-    console.log('🚀 INICIANDO ENVÍO DEL BRIEF');
-    console.log('📊 Datos del usuario:', {
-      userEmail: user?.emailAddresses?.[0]?.emailAddress,
-      isUserSynced,
-      syncStatus
-    });
+    console.log('🚀 Iniciando envío del brief');
 
     if (!user?.emailAddresses?.[0]?.emailAddress) {
-      console.error('❌ ERROR: Usuario no autenticado');
       toast({
         title: "Error de autenticación",
         description: "Debes estar autenticado para enviar un brief",
@@ -91,7 +75,7 @@ const BriefForm = () => {
     }
 
     if (!isUserSynced) {
-      console.error('❌ ERROR: Usuario no sincronizado');
+      console.log('⚠️ Usuario no sincronizado, estado:', syncStatus);
       toast({
         title: "Sincronización pendiente",
         description: "Esperando sincronización del usuario. Intenta nuevamente en unos segundos.",
@@ -101,7 +85,6 @@ const BriefForm = () => {
     }
 
     if (syncStatus === 'error') {
-      console.error('❌ ERROR: Error de sincronización');
       toast({
         title: "Error de sincronización",
         description: "Hubo un problema sincronizando tu usuario. Recarga la página e intenta nuevamente.",
@@ -110,34 +93,23 @@ const BriefForm = () => {
       return;
     }
 
-    console.log('🔍 VALIDANDO FORMULARIO...');
-    console.log('📝 Datos del formulario a validar:', formData);
-
     // Validar formulario antes de enviar
     const validation = validateAllRequiredFields(formData);
     
-    console.log('✅ Resultado de validación:', validation);
-    
     if (!validation.isValid) {
-      console.error('❌ VALIDACIÓN FALLIDA:', validation);
+      console.log('❌ Validación fallida');
       return; // El toast ya se muestra en la función de validación
     }
 
-    console.log('✅ VALIDACIÓN EXITOSA - Procediendo con envío');
-
+    console.log('✅ Formulario válido - Enviando...');
     setIsSubmitting(true);
 
     try {
-      console.log('💾 LLAMANDO A saveBrief...');
-      console.log('📤 Datos que se enviarán:', formData);
-      
       const data = await saveBrief(formData);
-      
-      console.log('🎉 BRIEF ENVIADO EXITOSAMENTE:', data);
+      console.log('🎉 Brief enviado exitosamente');
       
       // Limpiar autoguardado una vez enviado exitosamente
       clearAutoSave();
-      console.log('🧹 Autoguardado limpiado');
       
       toast({
         title: "Brief enviado exitosamente",
@@ -145,21 +117,7 @@ const BriefForm = () => {
       });
 
     } catch (error) {
-      console.error('💥 ERROR COMPLETO EN ENVÍO:', error);
-      console.error('🔍 Tipo de error:', typeof error);
-      console.error('🔍 Constructor del error:', error?.constructor?.name);
-      
-      if (error instanceof Error) {
-        console.error('📝 Mensaje del error:', error.message);
-        console.error('📝 Stack del error:', error.stack);
-      }
-      
-      // Log adicional para errores de Supabase
-      if (error && typeof error === 'object' && 'code' in error) {
-        console.error('🗄️ Código de error Supabase:', error.code);
-        console.error('🗄️ Detalles de error Supabase:', error.details);
-        console.error('🗄️ Hint de error Supabase:', error.hint);
-      }
+      console.error('💥 Error en envío:', error);
       
       toast({
         title: "Error al enviar",
@@ -167,10 +125,17 @@ const BriefForm = () => {
         variant: "destructive",
       });
     } finally {
-      console.log('🏁 FINALIZANDO PROCESO DE ENVÍO');
       setIsSubmitting(false);
     }
   };
+
+  // Log del estado del botón para debugging
+  console.log('🔘 Estado del botón:', {
+    isSubmitting,
+    isUserSynced,
+    syncStatus,
+    buttonDisabled: isSubmitting || !isUserSynced
+  });
 
   if (briefLoading) {
     return (
