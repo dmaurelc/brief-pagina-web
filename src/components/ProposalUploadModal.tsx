@@ -84,8 +84,10 @@ const ProposalUploadModal = ({
         .from('proposals')
         .insert({
           brief_id: briefId,
-          file_name: fileName,
+          file_path: fileName,
+          file_name: selectedFile.name,
           file_size: selectedFile.size,
+          uploaded_by: user.emailAddresses[0].emailAddress,
           client_message: adminNotes || null,
           email_sent_at: new Date().toISOString()
         })
