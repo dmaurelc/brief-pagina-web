@@ -12,7 +12,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
-  Eye,
+  Edit,
   Shield,
   AlertCircle,
   FileText,
@@ -20,11 +20,11 @@ import {
   CheckCircle,
   Send,
   MoreVertical,
-  LogOut,
+  Upload,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Tables } from "@/integrations/supabase/types";
-import BriefDetailModal from "@/components/BriefDetailModal";
+import BriefEditModal from "@/components/BriefEditModal";
 import {
   DndContext,
   DragEndEvent,
@@ -56,7 +56,7 @@ type Brief = Tables<"briefs">;
 const STATUS_CONFIG = {
   pending: { label: "Pendiente", color: "bg-yellow-500", icon: Clock },
   in_review: { label: "En Proceso", color: "bg-blue-500", icon: FileText },
-  quote_sent: { label: "Enviada", color: "bg-green-500", icon: Send },
+  quote_sent: { label: "Propuesta Enviada", color: "bg-green-500", icon: Send },
   completed: { label: "Completado", color: "bg-purple-500", icon: CheckCircle },
 } as const;
 
@@ -109,11 +109,11 @@ const DroppableColumn = ({
 // Componente mejorado para tarjetas drag-and-drop con método alternativo
 const DraggableBriefCard = ({
   brief,
-  onViewDetail,
+  onEditBrief,
   onStatusChange,
 }: {
   brief: Brief;
-  onViewDetail: (brief: Brief) => void;
+  onEditBrief: (brief: Brief) => void;
   onStatusChange: (briefId: string, newStatus: string) => void;
 }) => {
   const {
@@ -176,6 +176,16 @@ const DraggableBriefCard = ({
                 align="end"
                 className="bg-popover border-border"
               >
+                <DropdownMenuItem
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onEditBrief(brief);
+                  }}
+                  className="cursor-pointer hover:bg-accent"
+                >
+                  <Edit className="w-3 h-3 mr-2" />
+                  Editar Presupuesto
+                </DropdownMenuItem>
                 {availableStatuses.map(([status, config]) => (
                   <DropdownMenuItem
                     key={status}
@@ -199,18 +209,26 @@ const DraggableBriefCard = ({
             <span className="text-xs text-muted-foreground">
               {formatDate(brief.created_at)}
             </span>
-            <Button
-              onClick={(e) => {
-                e.stopPropagation();
-                onViewDetail(brief);
-              }}
-              size="sm"
-              variant="outline"
-              className="h-7 px-2 text-xs bg-accent-800 border-accent-600 hover:bg-accent-700"
-            >
-              <Eye className="w-3 h-3 mr-1" />
-              Ver
-            </Button>
+            <div className="flex gap-1">
+              {brief.proposal_id && (
+                <Badge variant="secondary" className="text-xs bg-green-100 text-green-800">
+                  <Upload className="w-2 h-2 mr-1" />
+                  Propuesta
+                </Badge>
+              )}
+              <Button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onEditBrief(brief);
+                }}
+                size="sm"
+                variant="outline"
+                className="h-6 px-2 text-xs bg-accent-800 border-accent-600 hover:bg-accent-700"
+              >
+                <Edit className="w-3 h-3 mr-1" />
+                Editar
+              </Button>
+            </div>
           </div>
 
           <div className="text-xs text-muted-foreground">
@@ -229,8 +247,8 @@ const DraggableBriefCard = ({
 const AdminDashboard = () => {
   const { user, isLoaded } = useUser();
   const navigate = useNavigate();
-  const [selectedBrief, setSelectedBrief] = useState<Brief | null>(null);
-  const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
+  const [editingBrief, setEditingBrief] = useState<Brief | null>(null);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isAdmin, setIsAdmin] = useState<boolean | null>(null);
   const [adminCheckLoading, setAdminCheckLoading] = useState(true);
   const [activeId, setActiveId] = useState<string | null>(null);
@@ -245,7 +263,6 @@ const AdminDashboard = () => {
     })
   );
 
-  // Verificar si el usuario es administrador
   useEffect(() => {
     const checkAdminRole = async () => {
       if (!user?.emailAddresses?.[0]?.emailAddress) {
@@ -307,7 +324,6 @@ const AdminDashboard = () => {
     enabled: isAdmin === true,
   });
 
-  // Mutación mejorada con actualización optimista
   const updateBriefStatusMutation = useMutation({
     mutationFn: async ({
       briefId,
@@ -321,13 +337,11 @@ const AdminDashboard = () => {
         newStatus,
       });
 
-      // Validar que el brief existe en la data local
       const currentBrief = briefs?.find((b) => b.id === briefId);
       if (!currentBrief) {
         throw new Error(`Brief no encontrado: ${briefId}`);
       }
 
-      // Validar que el nuevo estado es válido
       const validStatuses = ["pending", "in_review", "quote_sent", "completed"];
       if (!validStatuses.includes(newStatus)) {
         throw new Error(`Estado inválido: ${newStatus}`);
@@ -335,7 +349,6 @@ const AdminDashboard = () => {
 
       console.log("📝 Actualizando brief:", currentBrief.company_name);
 
-      // Ejecutar la actualización de forma simplificada
       const { error, count } = await supabase
         .from("briefs")
         .update({
@@ -354,13 +367,9 @@ const AdminDashboard = () => {
       return { briefId, newStatus, company_name: currentBrief.company_name };
     },
     onMutate: async ({ briefId, newStatus }) => {
-      // Cancelar queries existentes para evitar conflictos
       await queryClient.cancelQueries({ queryKey: ["admin-briefs"] });
-
-      // Obtener el snapshot anterior
       const previousBriefs = queryClient.getQueryData(["admin-briefs"]);
 
-      // Actualización optimista
       queryClient.setQueryData(["admin-briefs"], (old: Brief[] | undefined) => {
         if (!old) return old;
         return old.map((brief) =>
@@ -377,7 +386,6 @@ const AdminDashboard = () => {
       return { previousBriefs };
     },
     onError: (error, variables, context) => {
-      // Revertir cambio optimista en caso de error
       if (context?.previousBriefs) {
         queryClient.setQueryData(["admin-briefs"], context.previousBriefs);
       }
@@ -394,7 +402,6 @@ const AdminDashboard = () => {
     onSuccess: (data) => {
       console.log("✅ Mutación exitosa:", data);
 
-      // Invalidar queries para asegurar datos frescos
       queryClient.invalidateQueries({ queryKey: ["admin-briefs"] });
 
       toast({
@@ -412,9 +419,9 @@ const AdminDashboard = () => {
     updateBriefStatusMutation.mutate({ briefId, newStatus });
   };
 
-  const handleViewDetail = (brief: Brief) => {
-    setSelectedBrief(brief);
-    setIsDetailModalOpen(true);
+  const handleEditBrief = (brief: Brief) => {
+    setEditingBrief(brief);
+    setIsEditModalOpen(true);
   };
 
   const handleDragStart = (event: DragStartEvent) => {
@@ -440,7 +447,6 @@ const AdminDashboard = () => {
     const briefId = active.id as string;
     const newStatus = over.id as string;
 
-    // Validar que el brief existe
     const currentBrief = briefs?.find((b) => b.id === briefId);
     if (!currentBrief) {
       console.error("❌ Brief no encontrado en handleDragEnd:", briefId);
@@ -484,12 +490,12 @@ const AdminDashboard = () => {
       title: "Pendientes",
       icon: <Clock className="w-5 h-5" />,
       color: "bg-accent-800 border-accent-700",
-      headerColor: "bg-accent-600",
+      headerColor: "bg-yellow-600",
       count: categorizedBriefs?.pending.length || 0,
     },
     {
       id: "in_review",
-      title: "Proceso",
+      title: "En Proceso",
       icon: <FileText className="w-5 h-5" />,
       color: "bg-accent-800 border-accent-700",
       headerColor: "bg-blue-600",
@@ -497,7 +503,7 @@ const AdminDashboard = () => {
     },
     {
       id: "quote_sent",
-      title: "Enviadas",
+      title: "Propuestas Enviadas",
       icon: <Send className="w-5 h-5" />,
       color: "bg-accent-800 border-accent-700",
       headerColor: "bg-green-600",
@@ -508,12 +514,11 @@ const AdminDashboard = () => {
       title: "Completados",
       icon: <CheckCircle className="w-5 h-5" />,
       color: "bg-accent-800 border-accent-700",
-      headerColor: "bg-accent-500",
+      headerColor: "bg-purple-600",
       count: categorizedBriefs?.completed.length || 0,
     },
   ];
 
-  // Mostrar loading mientras se verifica autenticación y roles
   if (!isLoaded || adminCheckLoading) {
     return (
       <div className="min-h-screen bg-accent-700">
@@ -528,7 +533,6 @@ const AdminDashboard = () => {
     );
   }
 
-  // Mostrar error si no está autenticado
   if (!user) {
     return (
       <div className="min-h-screen bg-accent-700">
@@ -553,7 +557,6 @@ const AdminDashboard = () => {
     );
   }
 
-  // Mostrar error si no es administrador
   if (isAdmin === false) {
     return (
       <div className="min-h-screen bg-accent-700">
@@ -617,15 +620,15 @@ const AdminDashboard = () => {
         {/* Header */}
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-foreground">
-            Dashboard Admin
+            Panel de Administración
           </h1>
           <p className="text-muted-foreground mt-2">
-            Gestión de presupuestos y propuestas
+            Gestión de presupuestos y propuestas comerciales
           </p>
           <div className="flex items-center gap-2 mt-2">
             <Shield className="w-4 h-4 text-green-400" />
             <span className="text-sm text-green-400">
-              Admin: {user?.emailAddresses?.[0]?.emailAddress}
+              Administrador: {user?.emailAddresses?.[0]?.emailAddress}
             </span>
           </div>
         </div>
@@ -686,7 +689,7 @@ const AdminDashboard = () => {
                       <DraggableBriefCard
                         key={brief.id}
                         brief={brief}
-                        onViewDetail={handleViewDetail}
+                        onEditBrief={handleEditBrief}
                         onStatusChange={handleStatusChange}
                       />
                     ))}
@@ -730,19 +733,22 @@ const AdminDashboard = () => {
             <AlertCircle className="w-4 h-4" />
             <span>
               <strong>Métodos disponibles:</strong> Arrastra las tarjetas entre
-              columnas o usa el menú de opciones (⋮) en cada tarjeta para
-              cambiar el estado.
+              columnas, usa el menú de opciones (⋮) para cambiar estados o acciones, o haz clic en "Editar" para gestión completa.
             </span>
           </div>
         </div>
 
-        {selectedBrief && (
-          <BriefDetailModal
-            brief={selectedBrief}
-            isOpen={isDetailModalOpen}
+        {/* Modal de edición */}
+        {editingBrief && (
+          <BriefEditModal
+            brief={editingBrief}
+            isOpen={isEditModalOpen}
             onClose={() => {
-              setIsDetailModalOpen(false);
-              setSelectedBrief(null);
+              setIsEditModalOpen(false);
+              setEditingBrief(null);
+            }}
+            onBriefUpdated={() => {
+              queryClient.invalidateQueries({ queryKey: ["admin-briefs"] });
             }}
           />
         )}
