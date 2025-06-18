@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Upload, FileText, Send } from 'lucide-react';
+import { Upload, FileText, Send, X } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useUser } from '@clerk/clerk-react';
@@ -19,48 +19,48 @@ interface ProposalUploadModalProps {
   onProposalUploaded: () => void;
 }
 
-const ProposalUploadModal = ({
-  isOpen,
-  onClose,
-  briefId,
-  companyName,
+const ProposalUploadModal = ({ 
+  isOpen, 
+  onClose, 
+  briefId, 
+  companyName, 
   clientEmail,
-  onProposalUploaded,
+  onProposalUploaded 
 }: ProposalUploadModalProps) => {
-  const [file, setFile] = useState<File | null>(null);
-  const [adminNotes, setAdminNotes] = useState('');
-  const [isUploading, setIsUploading] = useState(false);
-  const { toast } = useToast();
   const { user } = useUser();
+  const { toast } = useToast();
+  const [isUploading, setIsUploading] = useState(false);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [adminNotes, setAdminNotes] = useState('');
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const selectedFile = e.target.files?.[0];
-    if (selectedFile) {
-      if (selectedFile.type !== 'application/pdf') {
+  const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      if (file.type !== 'application/pdf') {
         toast({
-          title: 'Error',
+          title: 'Tipo de archivo inválido',
           description: 'Solo se permiten archivos PDF',
           variant: 'destructive',
         });
         return;
       }
-      if (selectedFile.size > 10 * 1024 * 1024) { // 10MB limit
+      if (file.size > 10 * 1024 * 1024) { // 10MB
         toast({
-          title: 'Error',
+          title: 'Archivo muy grande',
           description: 'El archivo no puede ser mayor a 10MB',
           variant: 'destructive',
         });
         return;
       }
-      setFile(selectedFile);
+      setSelectedFile(file);
     }
   };
 
-  const handleUpload = async () => {
-    if (!file || !user?.emailAddresses?.[0]?.emailAddress) {
+  const handleUploadAndSend = async () => {
+    if (!selectedFile || !user?.emailAddresses?.[0]?.emailAddress) {
       toast({
         title: 'Error',
-        description: 'Selecciona un archivo PDF',
+        description: 'Debes seleccionar un archivo y estar autenticado',
         variant: 'destructive',
       });
       return;
@@ -69,74 +69,79 @@ const ProposalUploadModal = ({
     setIsUploading(true);
 
     try {
-      // Upload file to Supabase Storage
-      const fileName = `proposal_${briefId}_${Date.now()}.pdf`;
-      const filePath = `proposals/${briefId}/${fileName}`;
-
-      const { error: uploadError } = await supabase.storage
+      // 1. Subir archivo a Supabase Storage
+      const fileName = `${briefId}_${Date.now()}_${selectedFile.name}`;
+      const { data: uploadData, error: uploadError } = await supabase.storage
         .from('proposals')
-        .upload(filePath, file);
+        .upload(fileName, selectedFile);
 
-      if (uploadError) throw uploadError;
+      if (uploadError) {
+        throw new Error(`Error subiendo archivo: ${uploadError.message}`);
+      }
 
-      // Create proposal record
+      // 2. Crear registro en la tabla proposals
       const { data: proposalData, error: proposalError } = await supabase
         .from('proposals')
         .insert({
           brief_id: briefId,
-          file_path: filePath,
           file_name: fileName,
-          admin_notes: adminNotes,
-          uploaded_by: user.emailAddresses[0].emailAddress,
+          file_size: selectedFile.size,
+          client_message: adminNotes || null,
+          email_sent_at: new Date().toISOString()
         })
         .select()
         .single();
 
-      if (proposalError) throw proposalError;
+      if (proposalError) {
+        throw new Error(`Error creando propuesta: ${proposalError.message}`);
+      }
 
-      // Update brief status and link proposal
-      const { error: updateError } = await supabase
+      // 3. Actualizar el brief con el ID de la propuesta
+      const { error: briefUpdateError } = await supabase
         .from('briefs')
-        .update({
-          status: 'quote_sent',
-          status_updated_at: new Date().toISOString(),
+        .update({ 
           proposal_id: proposalData.id,
+          status: 'quote_sent'
         })
         .eq('id', briefId);
 
-      if (updateError) throw updateError;
+      if (briefUpdateError) {
+        throw new Error(`Error actualizando brief: ${briefUpdateError.message}`);
+      }
 
-      // Send notification email
+      // 4. Enviar notificación por email
       const { error: emailError } = await supabase.functions.invoke('send-proposal-notification', {
         body: {
           clientEmail,
           companyName,
           adminNotes,
-          fileName,
-        },
+          fileName: selectedFile.name
+        }
       });
 
       if (emailError) {
-        console.error('Error sending email:', emailError);
-        // Don't throw here - the upload was successful even if email failed
+        console.warn('Error enviando email:', emailError);
+        // No fallar la operación por el email, solo advertir
+        toast({
+          title: 'Propuesta enviada con advertencia',
+          description: 'La propuesta se subió correctamente pero hubo un problema enviando el email',
+          variant: 'default',
+        });
+      } else {
+        toast({
+          title: 'Propuesta enviada exitosamente',
+          description: `Se ha enviado la propuesta a ${clientEmail}`,
+        });
       }
-
-      toast({
-        title: 'Propuesta enviada',
-        description: 'La propuesta se ha subido y el cliente ha sido notificado',
-      });
 
       onProposalUploaded();
       onClose();
       
-      // Reset form
-      setFile(null);
-      setAdminNotes('');
     } catch (error: any) {
-      console.error('Error uploading proposal:', error);
+      console.error('Error en el proceso:', error);
       toast({
-        title: 'Error',
-        description: error.message || 'Error al subir la propuesta',
+        title: 'Error enviando propuesta',
+        description: error.message || 'Hubo un problema procesando la propuesta',
         variant: 'destructive',
       });
     } finally {
@@ -144,69 +149,88 @@ const ProposalUploadModal = ({
     }
   };
 
+  const handleClose = () => {
+    if (!isUploading) {
+      setSelectedFile(null);
+      setAdminNotes('');
+      onClose();
+    }
+  };
+
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-lg">
+    <Dialog open={isOpen} onOpenChange={handleClose}>
+      <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Upload className="w-5 h-5" />
-            Enviar Propuesta Comercial
+            Enviar Propuesta a {companyName}
           </DialogTitle>
         </DialogHeader>
-        
-        <div className="space-y-4">
-          <div className="p-4 bg-muted rounded-lg">
-            <h4 className="font-medium text-sm mb-1">Cliente:</h4>
-            <p className="text-sm text-muted-foreground">{companyName}</p>
-            <p className="text-sm text-muted-foreground">{clientEmail}</p>
-          </div>
 
+        <div className="space-y-4">
           <div>
             <Label htmlFor="proposal-file">Archivo PDF de la Propuesta</Label>
             <Input
               id="proposal-file"
               type="file"
               accept=".pdf"
-              onChange={handleFileChange}
-              className="mt-1"
+              onChange={handleFileSelect}
+              disabled={isUploading}
             />
-            {file && (
-              <div className="flex items-center gap-2 mt-2 text-sm text-muted-foreground">
+            {selectedFile && (
+              <div className="mt-2 p-2 bg-muted rounded flex items-center gap-2">
                 <FileText className="w-4 h-4" />
-                {file.name} ({(file.size / 1024 / 1024).toFixed(2)} MB)
+                <span className="text-sm">{selectedFile.name}</span>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => setSelectedFile(null)}
+                  disabled={isUploading}
+                >
+                  <X className="w-3 h-3" />
+                </Button>
               </div>
             )}
           </div>
 
           <div>
-            <Label htmlFor="admin-notes">Notas para el cliente (opcional)</Label>
+            <Label htmlFor="admin-notes">Mensaje para el Cliente (Opcional)</Label>
             <Textarea
               id="admin-notes"
-              placeholder="Mensaje personalizado para acompañar la propuesta..."
               value={adminNotes}
               onChange={(e) => setAdminNotes(e.target.value)}
-              className="mt-1"
+              placeholder="Mensaje adicional que aparecerá en el email..."
               rows={3}
+              disabled={isUploading}
             />
           </div>
 
-          <div className="flex gap-2 pt-4">
-            <Button variant="outline" onClick={onClose} className="flex-1">
-              Cancelar
-            </Button>
-            <Button 
-              onClick={handleUpload} 
-              disabled={!file || isUploading}
-              className="flex-1"
-            >
-              {isUploading ? (
-                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-              ) : (
-                <Send className="w-4 h-4 mr-2" />
-              )}
-              {isUploading ? 'Enviando...' : 'Enviar Propuesta'}
-            </Button>
+          <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
+            <p className="text-sm text-blue-800">
+              <strong>Cliente:</strong> {clientEmail}
+            </p>
+            <p className="text-sm text-blue-700 mt-1">
+              Se enviará una notificación automática por email con la propuesta.
+            </p>
           </div>
+        </div>
+
+        <div className="flex gap-2 pt-4">
+          <Button variant="outline" onClick={handleClose} disabled={isUploading}>
+            Cancelar
+          </Button>
+          <Button 
+            onClick={handleUploadAndSend} 
+            disabled={!selectedFile || isUploading}
+            className="flex-1"
+          >
+            {isUploading ? (
+              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+            ) : (
+              <Send className="w-4 h-4 mr-2" />
+            )}
+            {isUploading ? 'Enviando...' : 'Subir y Enviar Propuesta'}
+          </Button>
         </div>
       </DialogContent>
     </Dialog>
