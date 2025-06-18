@@ -1,3 +1,4 @@
+
 import {
   Dialog,
   DialogContent,
@@ -16,6 +17,15 @@ interface BriefDetailModalProps {
   onClose: () => void;
 }
 
+// Configuración de estados en español
+const STATUS_LABELS = {
+  pending: "Pendiente",
+  in_review: "En Proceso", 
+  quote_sent: "Propuesta Enviada",
+  completed: "Completado",
+  cancelled: "Cancelado"
+} as const;
+
 const BriefDetailModal = ({
   brief,
   isOpen,
@@ -30,12 +40,17 @@ const BriefDetailModal = ({
       case "quote_sent":
         return "bg-green-100 text-green-800";
       case "completed":
-        return "bg-gray-100 text-gray-800";
+        return "bg-purple-100 text-purple-800";
       case "cancelled":
         return "bg-red-100 text-red-800";
       default:
         return "bg-gray-100 text-gray-800";
     }
+  };
+
+  const getStatusLabel = (status: string | null) => {
+    if (!status) return STATUS_LABELS.pending;
+    return STATUS_LABELS[status as keyof typeof STATUS_LABELS] || status;
   };
 
   const formatDate = (dateString: string) => {
@@ -55,7 +70,7 @@ const BriefDetailModal = ({
           <div className="flex items-center justify-between">
             <DialogTitle className="text-xl">{brief.company_name}</DialogTitle>
             <Badge className={getStatusBadgeColor(brief.status)}>
-              {brief.status || "pending"}
+              {getStatusLabel(brief.status)}
             </Badge>
           </div>
         </DialogHeader>
