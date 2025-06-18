@@ -105,9 +105,11 @@ export type Database = {
         Row: {
           admin_notes: string | null
           brief_id: string
+          client_message: string | null
           email_sent_at: string | null
           file_name: string
           file_path: string
+          file_size: number | null
           id: string
           uploaded_at: string
           uploaded_by: string
@@ -115,9 +117,11 @@ export type Database = {
         Insert: {
           admin_notes?: string | null
           brief_id: string
+          client_message?: string | null
           email_sent_at?: string | null
           file_name: string
           file_path: string
+          file_size?: number | null
           id?: string
           uploaded_at?: string
           uploaded_by: string
@@ -125,9 +129,11 @@ export type Database = {
         Update: {
           admin_notes?: string | null
           brief_id?: string
+          client_message?: string | null
           email_sent_at?: string | null
           file_name?: string
           file_path?: string
+          file_size?: number | null
           id?: string
           uploaded_at?: string
           uploaded_by?: string
