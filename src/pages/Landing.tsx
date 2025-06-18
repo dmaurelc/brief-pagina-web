@@ -1,10 +1,10 @@
-import { SignedIn, SignedOut, SignInButton } from '@clerk/clerk-react';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
-import { useNavigate } from 'react-router-dom';
-import { CheckCircle, Clock, Users, Zap } from 'lucide-react';
-import { useEffect } from 'react';
-import { useAdminRole } from '@/hooks/useAdminRole';
+import { SignedIn, SignedOut, SignInButton } from "@clerk/clerk-react";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { useNavigate } from "react-router-dom";
+import { CheckCircle, Clock, Users, Zap } from "lucide-react";
+import { useEffect } from "react";
+import { useAdminRole } from "@/hooks/useAdminRole";
 
 const Landing = () => {
   const navigate = useNavigate();
@@ -14,9 +14,9 @@ const Landing = () => {
   useEffect(() => {
     if (!loading && user) {
       if (isAdmin) {
-        navigate('/admin');
+        navigate("/admin");
       } else {
-        navigate('/brief');
+        navigate("/brief");
       }
     }
   }, [user, isAdmin, loading, navigate]);
@@ -36,12 +36,12 @@ const Landing = () => {
     <div className="min-h-screen bg-background">
       {/* Header */}
       <header className="bg-card border-b border-border">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center py-6">
             <div className="flex items-center space-x-3">
-              <img 
-                src="/logo-dmaurel-white.svg" 
-                alt="DMaurel - Desarrollo Web Profesional" 
+              <img
+                src="/logo-dmaurel-white.svg"
+                alt="DMaurel - Desarrollo Web Profesional"
                 className="w-32 h-auto"
               />
             </div>
@@ -54,15 +54,17 @@ const Landing = () => {
                     </Button>
                   </SignInButton>
                   <SignInButton mode="modal">
-                    <Button size="sm">
-                      Comenzar Ahora
-                    </Button>
+                    <Button size="sm">Comenzar Ahora</Button>
                   </SignInButton>
                 </div>
               </SignedOut>
-              
+
               <SignedIn>
-                <Button onClick={() => navigate('/my-account')} variant="outline" size="sm">
+                <Button
+                  onClick={() => navigate("/my-account")}
+                  variant="outline"
+                  size="sm"
+                >
                   Mi Cuenta
                 </Button>
               </SignedIn>
@@ -72,14 +74,15 @@ const Landing = () => {
       </header>
 
       {/* Hero Section */}
-      <main className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
         <div className="text-center mb-16">
           <h1 className="text-5xl font-bold text-foreground mb-6">
             Presupuestos Web <span className="text-primary">Profesionales</span>
           </h1>
           <p className="text-xl text-muted-foreground max-w-3xl mx-auto mb-8">
-            Obtén una cotización detallada y personalizada para tu proyecto web. 
-            Completa nuestro brief en minutos y recibe una propuesta profesional adaptada a tus necesidades.
+            Obtén una cotización detallada y personalizada para tu proyecto web.
+            Completa nuestro brief en minutos y recibe una propuesta profesional
+            adaptada a tus necesidades.
           </p>
 
           <SignedOut>
@@ -93,10 +96,10 @@ const Landing = () => {
           </SignedOut>
 
           <SignedIn>
-            <Button 
-              size="lg" 
+            <Button
+              size="lg"
               className="text-lg px-8 py-3"
-              onClick={() => navigate('/brief')}
+              onClick={() => navigate("/brief")}
             >
               Solicitar Presupuesto
             </Button>
@@ -109,31 +112,34 @@ const Landing = () => {
             {
               icon: <Zap className="w-8 h-8 text-primary" />,
               title: "Rápido y Eficiente",
-              description: "Completa el brief en 5 minutos y recibe tu propuesta en 24-48 horas"
+              description:
+                "Completa el brief en 5 minutos y recibe tu propuesta en 24-48 horas",
             },
             {
               icon: <Users className="w-8 h-8 text-primary" />,
               title: "Experiencia Profesional",
-              description: "Más de 10 años desarrollando soluciones web para empresas"
+              description:
+                "Más de 10 años desarrollando soluciones web para empresas",
             },
             {
               icon: <CheckCircle className="w-8 h-8 text-primary" />,
               title: "Propuesta Detallada",
-              description: "Cotización completa con cronograma, funcionalidades y costos"
+              description:
+                "Cotización completa con cronograma, funcionalidades y costos",
             },
             {
               icon: <Clock className="w-8 h-8 text-primary" />,
               title: "Sin Compromiso",
-              description: "Recibe tu presupuesto sin costo y sin obligaciones"
-            }
+              description: "Recibe tu presupuesto sin costo y sin obligaciones",
+            },
           ].map((feature, index) => (
             <Card key={index} className="text-center">
               <CardContent className="p-6">
-                <div className="flex justify-center mb-4">
-                  {feature.icon}
-                </div>
+                <div className="flex justify-center mb-4">{feature.icon}</div>
                 <h3 className="text-lg font-semibold mb-2">{feature.title}</h3>
-                <p className="text-muted-foreground text-sm">{feature.description}</p>
+                <p className="text-muted-foreground text-sm">
+                  {feature.description}
+                </p>
               </CardContent>
             </Card>
           ))}

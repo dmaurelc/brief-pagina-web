@@ -1,18 +1,30 @@
+import { useUser } from "@clerk/clerk-react";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { useNavigate } from "react-router-dom";
+import {
+  User,
+  Shield,
+  FileText,
+  Clock,
+  CheckCircle,
+  AlertCircle,
+} from "lucide-react";
+import { Tables } from "@/integrations/supabase/types";
+import { useAdminRole } from "@/hooks/useAdminRole";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import Header from "@/components/Header";
 
-import { useUser } from '@clerk/clerk-react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { useQuery } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
-import { useNavigate } from 'react-router-dom';
-import { User, Shield, FileText, Clock, CheckCircle, AlertCircle } from 'lucide-react';
-import { Tables } from '@/integrations/supabase/types';
-import { useAdminRole } from '@/hooks/useAdminRole';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import Header from '@/components/Header';
-
-type Brief = Tables<'briefs'>;
+type Brief = Tables<"briefs">;
 
 const MyAccount = () => {
   const { user, isLoaded } = useUser();
@@ -21,16 +33,16 @@ const MyAccount = () => {
 
   // Fetch user's briefs
   const { data: userBriefs, isLoading } = useQuery({
-    queryKey: ['user-briefs', user?.emailAddresses?.[0]?.emailAddress],
+    queryKey: ["user-briefs", user?.emailAddresses?.[0]?.emailAddress],
     queryFn: async () => {
       if (!user?.emailAddresses?.[0]?.emailAddress) return [];
-      
+
       const { data, error } = await supabase
-        .from('briefs')
-        .select('*')
-        .eq('email', user.emailAddresses[0].emailAddress)
-        .order('created_at', { ascending: false });
-      
+        .from("briefs")
+        .select("*")
+        .eq("email", user.emailAddresses[0].emailAddress)
+        .order("created_at", { ascending: false });
+
       if (error) throw error;
       return data;
     },
@@ -39,14 +51,14 @@ const MyAccount = () => {
 
   // Fetch all briefs for admin overview
   const { data: allBriefs } = useQuery({
-    queryKey: ['admin-briefs-overview'],
+    queryKey: ["admin-briefs-overview"],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from('briefs')
-        .select('*')
-        .order('created_at', { ascending: false })
+        .from("briefs")
+        .select("*")
+        .order("created_at", { ascending: false })
         .limit(5);
-      
+
       if (error) throw error;
       return data;
     },
@@ -55,29 +67,29 @@ const MyAccount = () => {
 
   const getStatusBadgeColor = (status: string | null) => {
     switch (status) {
-      case 'pending':
-        return 'bg-yellow-100 text-yellow-800';
-      case 'in_review':
-        return 'bg-blue-100 text-blue-800';
-      case 'quote_sent':
-        return 'bg-green-100 text-green-800';
-      case 'completed':
-        return 'bg-gray-100 text-gray-800';
-      case 'cancelled':
-        return 'bg-red-100 text-red-800';
+      case "pending":
+        return "bg-yellow-100 text-yellow-800";
+      case "in_review":
+        return "bg-blue-100 text-blue-800";
+      case "quote_sent":
+        return "bg-green-100 text-green-800";
+      case "completed":
+        return "bg-gray-100 text-gray-800";
+      case "cancelled":
+        return "bg-red-100 text-red-800";
       default:
-        return 'bg-gray-100 text-gray-800';
+        return "bg-gray-100 text-gray-800";
     }
   };
 
   const getStatusIcon = (status: string | null) => {
     switch (status) {
-      case 'pending':
+      case "pending":
         return <Clock className="w-4 h-4" />;
-      case 'in_review':
+      case "in_review":
         return <AlertCircle className="w-4 h-4" />;
-      case 'quote_sent':
-      case 'completed':
+      case "quote_sent":
+      case "completed":
         return <CheckCircle className="w-4 h-4" />;
       default:
         return <Clock className="w-4 h-4" />;
@@ -85,10 +97,10 @@ const MyAccount = () => {
   };
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('es-ES', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric'
+    return new Date(dateString).toLocaleDateString("es-ES", {
+      year: "numeric",
+      month: "long",
+      day: "numeric",
     });
   };
 
@@ -118,7 +130,7 @@ const MyAccount = () => {
               <p className="text-muted-foreground mb-4">
                 Debes iniciar sesión para acceder a tu cuenta.
               </p>
-              <Button onClick={() => navigate('/')} className="w-full">
+              <Button onClick={() => navigate("/")} className="w-full">
                 Ir al inicio
               </Button>
             </CardContent>
@@ -131,8 +143,8 @@ const MyAccount = () => {
   return (
     <div className="min-h-screen bg-accent-700">
       <Header />
-      
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-foreground">Mi Cuenta</h1>
           <p className="text-muted-foreground mt-2">
@@ -169,24 +181,34 @@ const MyAccount = () => {
               <CardContent className="space-y-4">
                 <div>
                   <p className="text-sm text-muted-foreground">Nombre</p>
-                  <p className="font-medium">{user.firstName} {user.lastName}</p>
+                  <p className="font-medium">
+                    {user.firstName} {user.lastName}
+                  </p>
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">Email</p>
-                  <p className="font-medium">{user.emailAddresses?.[0]?.emailAddress}</p>
+                  <p className="font-medium">
+                    {user.emailAddresses?.[0]?.emailAddress}
+                  </p>
                 </div>
                 <div>
-                  <p className="text-sm text-muted-foreground">Tipo de cuenta</p>
+                  <p className="text-sm text-muted-foreground">
+                    Tipo de cuenta
+                  </p>
                   <div className="flex items-center gap-2">
                     {isAdmin ? (
                       <>
                         <Shield className="w-4 h-4 text-green-600" />
-                        <span className="font-medium text-green-600">Administrador</span>
+                        <span className="font-medium text-green-600">
+                          Administrador
+                        </span>
                       </>
                     ) : (
                       <>
                         <User className="w-4 h-4 text-blue-600" />
-                        <span className="font-medium text-blue-600">Usuario</span>
+                        <span className="font-medium text-blue-600">
+                          Usuario
+                        </span>
                       </>
                     )}
                   </div>
@@ -216,9 +238,13 @@ const MyAccount = () => {
                         {allBriefs.map((brief) => (
                           <div key={brief.id} className="border rounded-lg p-4">
                             <div className="flex items-center justify-between mb-2">
-                              <h3 className="font-semibold">{brief.company_name}</h3>
-                              <Badge className={getStatusBadgeColor(brief.status)}>
-                                {brief.status || 'pending'}
+                              <h3 className="font-semibold">
+                                {brief.company_name}
+                              </h3>
+                              <Badge
+                                className={getStatusBadgeColor(brief.status)}
+                              >
+                                {brief.status || "pending"}
                               </Badge>
                             </div>
                             <p className="text-sm text-muted-foreground">
@@ -254,7 +280,9 @@ const MyAccount = () => {
                   {isLoading ? (
                     <div className="text-center py-8">
                       <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
-                      <p className="text-muted-foreground">Cargando presupuestos...</p>
+                      <p className="text-muted-foreground">
+                        Cargando presupuestos...
+                      </p>
                     </div>
                   ) : userBriefs && userBriefs.length > 0 ? (
                     <div className="space-y-4">
@@ -262,37 +290,48 @@ const MyAccount = () => {
                         <div key={brief.id} className="border rounded-lg p-4">
                           <div className="flex items-start justify-between mb-3">
                             <div>
-                              <h3 className="font-semibold text-lg">{brief.company_name}</h3>
-                              <p className="text-muted-foreground">{brief.project_type}</p>
+                              <h3 className="font-semibold text-lg">
+                                {brief.company_name}
+                              </h3>
+                              <p className="text-muted-foreground">
+                                {brief.project_type}
+                              </p>
                             </div>
-                            <Badge className={getStatusBadgeColor(brief.status)}>
+                            <Badge
+                              className={getStatusBadgeColor(brief.status)}
+                            >
                               <div className="flex items-center gap-1">
                                 {getStatusIcon(brief.status)}
-                                {brief.status || 'pending'}
+                                {brief.status || "pending"}
                               </div>
                             </Badge>
                           </div>
-                          
+
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
                             <div>
-                              <span className="font-medium">Presupuesto:</span> {brief.budget}
+                              <span className="font-medium">Presupuesto:</span>{" "}
+                              {brief.budget}
                             </div>
                             <div>
-                              <span className="font-medium">Timeline:</span> {brief.timeline}
+                              <span className="font-medium">Timeline:</span>{" "}
+                              {brief.timeline}
                             </div>
                             <div>
-                              <span className="font-medium">Industria:</span> {brief.industry}
+                              <span className="font-medium">Industria:</span>{" "}
+                              {brief.industry}
                             </div>
                             <div>
-                              <span className="font-medium">Enviado:</span> {formatDate(brief.created_at)}
+                              <span className="font-medium">Enviado:</span>{" "}
+                              {formatDate(brief.created_at)}
                             </div>
                           </div>
 
-                          {brief.status === 'quote_sent' && (
+                          {brief.status === "quote_sent" && (
                             <Alert className="mt-3">
                               <CheckCircle className="h-4 w-4" />
                               <AlertDescription>
-                                ¡Tu propuesta está lista! Revisa tu email para más detalles.
+                                ¡Tu propuesta está lista! Revisa tu email para
+                                más detalles.
                               </AlertDescription>
                             </Alert>
                           )}
@@ -302,11 +341,13 @@ const MyAccount = () => {
                   ) : (
                     <div className="text-center py-8">
                       <FileText className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
-                      <h3 className="text-lg font-semibold mb-2">No tienes presupuestos aún</h3>
+                      <h3 className="text-lg font-semibold mb-2">
+                        No tienes presupuestos aún
+                      </h3>
                       <p className="text-muted-foreground mb-4">
                         ¡Solicita tu primer presupuesto para comenzar!
                       </p>
-                      <Button onClick={() => navigate('/brief')}>
+                      <Button onClick={() => navigate("/brief")}>
                         Solicitar Presupuesto
                       </Button>
                     </div>
@@ -320,9 +361,12 @@ const MyAccount = () => {
 
       {/* Footer */}
       <footer className="bg-card border-t border-border mt-20">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <div className="text-center text-muted-foreground">
-            <p>&copy; 2025 Brief Página Web - Generador de presupuestos web personalizados por DMaurel.</p>
+            <p>
+              &copy; 2025 Brief Página Web - Generador de presupuestos web
+              personalizados por DMaurel.
+            </p>
           </div>
         </div>
       </footer>

@@ -1,16 +1,21 @@
-
-import { SignedIn, SignedOut, SignInButton, UserButton, useClerk } from '@clerk/clerk-react';
-import { Button } from '@/components/ui/button';
-import { useNavigate } from 'react-router-dom';
-import { Shield, User, LogOut, Home, FileText } from 'lucide-react';
-import { useAdminRole } from '@/hooks/useAdminRole';
+import {
+  SignedIn,
+  SignedOut,
+  SignInButton,
+  UserButton,
+  useClerk,
+} from "@clerk/clerk-react";
+import { Button } from "@/components/ui/button";
+import { useNavigate } from "react-router-dom";
+import { Shield, User, LogOut, Home, FileText } from "lucide-react";
+import { useAdminRole } from "@/hooks/useAdminRole";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
+} from "@/components/ui/dropdown-menu";
 
 const Header = () => {
   const navigate = useNavigate();
@@ -18,26 +23,26 @@ const Header = () => {
   const { signOut } = useClerk();
 
   const handleSignOut = () => {
-    signOut(() => navigate('/'));
+    signOut(() => navigate("/"));
   };
 
   return (
     <header className="bg-card border-b border-border">
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center py-6">
           <div className="flex items-center space-x-3">
-            <img 
-              src="/logo-dmaurel-white.svg" 
-              alt="DMaurel - Desarrollo Web Profesional" 
+            <img
+              src="/logo-dmaurel-white.svg"
+              alt="DMaurel - Desarrollo Web Profesional"
               className="w-32 h-auto cursor-pointer"
-              onClick={() => navigate('/')}
+              onClick={() => navigate("/")}
             />
           </div>
           <div className="flex items-center space-x-4">
             <div className="text-sm text-muted-foreground">
               Brief Página Web
             </div>
-            
+
             <SignedOut>
               <div className="flex gap-3">
                 <SignInButton mode="modal">
@@ -46,13 +51,11 @@ const Header = () => {
                   </Button>
                 </SignInButton>
                 <SignInButton mode="modal">
-                  <Button size="sm">
-                    Comenzar Ahora
-                  </Button>
+                  <Button size="sm">Comenzar Ahora</Button>
                 </SignInButton>
               </div>
             </SignedOut>
-            
+
             <SignedIn>
               <div className="flex items-center space-x-2">
                 {/* Navigation Menu for Signed In Users */}
@@ -66,27 +69,27 @@ const Header = () => {
                           Admin
                         </>
                       ) : (
-                        'Menú'
+                        "Menú"
                       )}
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end" className="w-48">
-                    <DropdownMenuItem onClick={() => navigate('/')}>
+                    <DropdownMenuItem onClick={() => navigate("/")}>
                       <Home className="w-4 h-4 mr-2" />
                       Inicio
                     </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => navigate('/my-account')}>
+                    <DropdownMenuItem onClick={() => navigate("/my-account")}>
                       <User className="w-4 h-4 mr-2" />
                       Mi Cuenta
                     </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => navigate('/brief')}>
+                    <DropdownMenuItem onClick={() => navigate("/brief")}>
                       <FileText className="w-4 h-4 mr-2" />
                       Nuevo Presupuesto
                     </DropdownMenuItem>
                     {isAdmin && (
                       <>
                         <DropdownMenuSeparator />
-                        <DropdownMenuItem onClick={() => navigate('/admin')}>
+                        <DropdownMenuItem onClick={() => navigate("/admin")}>
                           <Shield className="w-4 h-4 mr-2" />
                           Dashboard Admin
                         </DropdownMenuItem>
@@ -100,11 +103,11 @@ const Header = () => {
                   </DropdownMenuContent>
                 </DropdownMenu>
 
-                <UserButton 
+                <UserButton
                   appearance={{
                     elements: {
-                      avatarBox: "w-8 h-8"
-                    }
+                      avatarBox: "w-8 h-8",
+                    },
                   }}
                 />
               </div>
