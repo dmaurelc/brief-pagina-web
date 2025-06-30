@@ -1,3 +1,4 @@
+
 import { useUser } from "@clerk/clerk-react";
 import {
   Card,
@@ -30,7 +31,7 @@ type Brief = Tables<"briefs">;
 type Proposal = Tables<"proposals">;
 
 interface BriefWithProposal extends Brief {
-  proposal?: Proposal | null;
+  proposals?: Proposal[];
 }
 
 const MyAccount = () => {
@@ -42,7 +43,12 @@ const MyAccount = () => {
   const { data: userBriefs, isLoading } = useQuery({
     queryKey: ["user-briefs-with-proposals", user?.emailAddresses?.[0]?.emailAddress],
     queryFn: async () => {
-      if (!user?.emailAddresses?.[0]?.emailAddress) return [];
+      if (!user?.emailAddresses?.[0]?.emailAddress) {
+        console.log('❌ No hay email de usuario disponible');
+        return [];
+      }
+
+      console.log('🔍 Buscando briefs para email:', user.emailAddresses[0].emailAddress);
 
       const { data, error } = await supabase
         .from("briefs")
@@ -53,13 +59,26 @@ const MyAccount = () => {
         .eq("email", user.emailAddresses[0].emailAddress)
         .order("created_at", { ascending: false });
 
-      if (error) throw error;
+      if (error) {
+        console.error('❌ Error fetching briefs:', error);
+        throw error;
+      }
       
-      // Transform data to include proposal information
-      return data.map(brief => ({
-        ...brief,
-        proposal: Array.isArray(brief.proposals) && brief.proposals.length > 0 ? brief.proposals[0] : null
-      })) as BriefWithProposal[];
+      console.log('📊 Briefs obtenidos desde Supabase:', data);
+      console.log('📊 Número de briefs encontrados:', data?.length || 0);
+      
+      // Log cada brief individualmente para debug
+      data?.forEach((brief, index) => {
+        console.log(`📝 Brief ${index + 1}:`, {
+          id: brief.id,
+          company_name: brief.company_name,
+          email: brief.email,
+          status: brief.status,
+          proposals: brief.proposals
+        });
+      });
+      
+      return data as BriefWithProposal[] || [];
     },  
     enabled: !!user?.emailAddresses?.[0]?.emailAddress && isLoaded,
   });
@@ -154,6 +173,14 @@ const MyAccount = () => {
       </div>
     );
   }
+
+  // Log para debug - mostrar el estado actual
+  console.log('🎯 Estado actual MyAccount:', {
+    userEmail: user?.emailAddresses?.[0]?.emailAddress,
+    isLoading,
+    userBriefsCount: userBriefs?.length || 0,
+    userBriefs: userBriefs
+  });
 
   return (
     <div className="min-h-screen bg-accent-700">
@@ -301,84 +328,98 @@ const MyAccount = () => {
                     </div>
                   ) : userBriefs && userBriefs.length > 0 ? (
                     <div className="space-y-4">
-                      {userBriefs.map((brief) => (
-                        <div key={brief.id} className="border rounded-lg p-4">
-                          <div className="flex items-start justify-between mb-3">
-                            <div>
-                              <h3 className="font-semibold text-lg">
-                                {brief.company_name}
-                              </h3>
-                              <p className="text-muted-foreground">
-                                {brief.project_type}
-                              </p>
-                            </div>
-                            <Badge
-                              className={getStatusBadgeColor(brief.status)}
-                            >
-                              <div className="flex items-center gap-1">
-                                {getStatusIcon(brief.status)}
-                                {brief.status || "pending"}
+                      {userBriefs.map((brief) => {
+                        // Get the first proposal for this brief (if any)
+                        const proposal = Array.isArray(brief.proposals) && brief.proposals.length > 0 
+                          ? brief.proposals[0] 
+                          : null;
+                          
+                        console.log(`💼 Procesando brief ${brief.company_name}:`, {
+                          briefId: brief.id,
+                          proposalsArray: brief.proposals,
+                          hasProposal: !!proposal,
+                          proposalData: proposal
+                        });
+
+                        return (
+                          <div key={brief.id} className="border rounded-lg p-4">
+                            <div className="flex items-start justify-between mb-3">
+                              <div>
+                                <h3 className="font-semibold text-lg">
+                                  {brief.company_name}
+                                </h3>
+                                <p className="text-muted-foreground">
+                                  {brief.project_type}
+                                </p>
                               </div>
-                            </Badge>
-                          </div>
-
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm mb-4">
-                            <div>
-                              <span className="font-medium">Presupuesto:</span>{" "}
-                              {brief.budget}
-                            </div>
-                            <div>
-                              <span className="font-medium">Timeline:</span>{" "}
-                              {brief.timeline}
-                            </div>
-                            <div>
-                              <span className="font-medium">Industria:</span>{" "}
-                              {brief.industry}
-                            </div>
-                            <div>
-                              <span className="font-medium">Enviado:</span>{" "}
-                              {formatDate(brief.created_at)}
-                            </div>
-                          </div>
-
-                          {/* Propuesta disponible */}
-                          {brief.proposal && (
-                            <div className="mt-4 p-4 bg-green-50 border border-green-200 rounded-lg">
-                              <div className="flex items-center justify-between">
-                                <div>
-                                  <h4 className="font-semibold text-green-800 flex items-center gap-2">
-                                    <Download className="w-4 h-4" />
-                                    Propuesta Lista
-                                  </h4>
-                                  <p className="text-sm text-green-700 mt-1">
-                                    Enviada el {formatDate(brief.proposal.email_sent_at || brief.proposal.uploaded_at)}
-                                  </p>
-                                  {brief.proposal.client_message && (
-                                    <p className="text-sm text-green-700 mt-2 font-medium">
-                                      "{brief.proposal.client_message}"
-                                    </p>
-                                  )}
+                              <Badge
+                                className={getStatusBadgeColor(brief.status)}
+                              >
+                                <div className="flex items-center gap-1">
+                                  {getStatusIcon(brief.status)}
+                                  {brief.status || "pending"}
                                 </div>
-                                <ProposalDownloadButton
-                                  proposalId={brief.proposal.id}
-                                  fileName={brief.proposal.file_name}
-                                  filePath={brief.proposal.file_path}
-                                  companyName={brief.company_name}
-                                />
+                              </Badge>
+                            </div>
+
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm mb-4">
+                              <div>
+                                <span className="font-medium">Presupuesto:</span>{" "}
+                                {brief.budget}
+                              </div>
+                              <div>
+                                <span className="font-medium">Timeline:</span>{" "}
+                                {brief.timeline}
+                              </div>
+                              <div>
+                                <span className="font-medium">Industria:</span>{" "}
+                                {brief.industry}
+                              </div>
+                              <div>
+                                <span className="font-medium">Enviado:</span>{" "}
+                                {formatDate(brief.created_at)}
                               </div>
                             </div>
-                          )}
 
-                          {brief.status === "quote_sent" && !brief.proposal && (
-                            <Alert className="mt-3">
-                              <CheckCircle className="h-4 w-4" />
-                              <AlertDescription>
-                                ¡Tu propuesta está lista! La propuesta debería estar disponible pronto para descarga.
-                              </AlertDescription>
-                            </Alert>
-                          )}
-                        </div>
-                      ))}
+                            {/* Propuesta disponible */}
+                            {proposal && (
+                              <div className="mt-4 p-4 bg-green-50 border border-green-200 rounded-lg">
+                                <div className="flex items-center justify-between">
+                                  <div>
+                                    <h4 className="font-semibold text-green-800 flex items-center gap-2">
+                                      <Download className="w-4 h-4" />
+                                      Propuesta Lista
+                                    </h4>
+                                    <p className="text-sm text-green-700 mt-1">
+                                      Enviada el {formatDate(proposal.email_sent_at || proposal.uploaded_at)}
+                                    </p>
+                                    {proposal.client_message && (
+                                      <p className="text-sm text-green-700 mt-2 font-medium">
+                                        "{proposal.client_message}"
+                                      </p>
+                                    )}
+                                  </div>
+                                  <ProposalDownloadButton
+                                    proposalId={proposal.id}
+                                    fileName={proposal.file_name}
+                                    filePath={proposal.file_path}
+                                    companyName={brief.company_name}
+                                  />
+                                </div>
+                              </div>
+                            )}
+
+                            {brief.status === "quote_sent" && !proposal && (
+                              <Alert className="mt-3">
+                                <CheckCircle className="h-4 w-4" />
+                                <AlertDescription>
+                                  ¡Tu propuesta está lista! La propuesta debería estar disponible pronto para descarga.
+                                </AlertDescription>
+                              </Alert>
+                            )}
+                          </div>
+                        );
+                      })}
                     </div>
                   ) : (
                     <div className="text-center py-8">
@@ -388,6 +429,9 @@ const MyAccount = () => {
                       </h3>
                       <p className="text-muted-foreground mb-4">
                         ¡Solicita tu primer presupuesto para comenzar!
+                      </p>
+                      <p className="text-sm text-muted-foreground mb-4">
+                        Email actual: {user.emailAddresses?.[0]?.emailAddress}
                       </p>
                       <Button onClick={() => navigate("/brief")}>
                         Solicitar Presupuesto
