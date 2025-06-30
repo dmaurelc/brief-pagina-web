@@ -21,7 +21,7 @@ const ProposalDropzone = ({
   clientEmail, 
   onProposalUploaded 
 }: ProposalDropzoneProps) => {
-  const { isAdmin, user } = useAdminRole();
+  const { isAdmin, loading, user } = useAdminRole();
   const { toast } = useToast();
   const [isUploading, setIsUploading] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -203,6 +203,20 @@ const ProposalDropzone = ({
     }
   };
 
+  // Mostrar loading mientras se verifica el rol de administrador
+  if (loading) {
+    return (
+      <div className="text-center py-8">
+        <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-primary mx-auto mb-4"></div>
+        <h3 className="text-lg font-medium mb-2">Verificando permisos...</h3>
+        <p className="text-muted-foreground">
+          Comprobando si tienes acceso para subir propuestas.
+        </p>
+      </div>
+    );
+  }
+
+  // Solo mostrar "Acceso Denegado" después de confirmar que no es admin
   if (!isAdmin) {
     return (
       <div className="text-center py-8">
