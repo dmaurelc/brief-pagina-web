@@ -274,9 +274,8 @@ const AdminDashboard = () => {
 
       try {
         console.log("🔍 Verificando rol de admin para:", user.emailAddresses[0].emailAddress);
-        const { data, error } = await supabase.rpc("has_role_by_email", {
+        const { data, error } = await supabase.rpc("check_admin_role_safe", {
           _email: user.emailAddresses[0].emailAddress,
-          _role: "admin",
         });
 
         if (error) {
@@ -370,11 +369,10 @@ const AdminDashboard = () => {
       console.log("  - Brief actual:", currentBrief.company_name);
       console.log("  - Estado actual:", currentBrief.status);
 
-      // Verificar permisos antes de actualizar
+      // Verificar permisos antes de actualizar usando la nueva función
       console.log("🔍 Verificando permisos de admin...");
-      const { data: hasPermission, error: permissionError } = await supabase.rpc("has_role_by_email", {
+      const { data: hasPermission, error: permissionError } = await supabase.rpc("check_admin_role_safe", {
         _email: user!.emailAddresses![0].emailAddress,
-        _role: "admin",
       });
 
       if (permissionError) {

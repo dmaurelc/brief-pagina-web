@@ -17,9 +17,8 @@ export const useAdminRole = () => {
       }
 
       try {
-        const { data, error } = await supabase.rpc('has_role_by_email', {
-          _email: user.emailAddresses[0].emailAddress,
-          _role: 'admin'
+        const { data, error } = await supabase.rpc('check_admin_role_safe', {
+          _email: user.emailAddresses[0].emailAddress
         });
 
         if (error) {

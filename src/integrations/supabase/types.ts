@@ -174,6 +174,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      check_admin_role_safe: {
+        Args: { _email: string }
+        Returns: boolean
+      }
       create_first_admin: {
         Args: { _user_id: string }
         Returns: undefined

@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from "react";
 import { useUser } from "@clerk/clerk-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -38,9 +39,8 @@ const Admin = () => {
       }
 
       try {
-        const { data, error } = await supabase.rpc("has_role_by_email", {
+        const { data, error } = await supabase.rpc("check_admin_role_safe", {
           _email: user.emailAddresses[0].emailAddress,
-          _role: "admin",
         });
 
         if (error) {
