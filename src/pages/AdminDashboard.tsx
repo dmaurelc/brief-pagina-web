@@ -273,19 +273,21 @@ const AdminDashboard = () => {
       }
 
       try {
+        console.log("🔍 Verificando rol de admin para:", user.emailAddresses[0].emailAddress);
         const { data, error } = await supabase.rpc("has_role_by_email", {
           _email: user.emailAddresses[0].emailAddress,
           _role: "admin",
         });
 
         if (error) {
-          console.error("Error verificando rol de admin:", error);
+          console.error("❌ Error verificando rol de admin:", error);
           setIsAdmin(false);
         } else {
+          console.log("✅ Resultado verificación admin:", data);
           setIsAdmin(data);
         }
       } catch (error) {
-        console.error("Error verificando rol de admin:", error);
+        console.error("❌ Error verificando rol de admin:", error);
         setIsAdmin(false);
       } finally {
         setAdminCheckLoading(false);
@@ -358,6 +360,7 @@ const AdminDashboard = () => {
       console.log("🚀 INICIANDO ACTUALIZACIÓN DE ESTADO:");
       console.log("  - Brief ID:", briefId.slice(0, 8));
       console.log("  - Nuevo estado:", newStatus);
+      console.log("  - Usuario actual:", user?.emailAddresses?.[0]?.emailAddress);
 
       const currentBrief = briefs?.find((b) => b.id === briefId);
       if (!currentBrief) {
@@ -367,28 +370,71 @@ const AdminDashboard = () => {
       console.log("  - Brief actual:", currentBrief.company_name);
       console.log("  - Estado actual:", currentBrief.status);
 
+      // Verificar permisos antes de actualizar
+      console.log("🔍 Verificando permisos de admin...");
+      const { data: hasPermission, error: permissionError } = await supabase.rpc("has_role_by_email", {
+        _email: user!.emailAddresses![0].emailAddress,
+        _role: "admin",
+      });
+
+      if (permissionError) {
+        console.error("❌ Error verificando permisos:", permissionError);
+        throw new Error(`Error de permisos: ${permissionError.message}`);
+      }
+
+      if (!hasPermission) {
+        console.error("❌ Usuario no tiene permisos de admin");
+        throw new Error("No tienes permisos para actualizar este presupuesto");
+      }
+
+      console.log("✅ Permisos verificados correctamente");
+
       const validStatuses = ["pending", "in_review", "quote_sent", "completed"];
       if (!validStatuses.includes(newStatus)) {
         throw new Error(`Estado inválido: ${newStatus}`);
       }
 
       console.log("🔄 Enviando actualización a Supabase...");
+      const updateData = {
+        status: newStatus as "pending" | "in_review" | "quote_sent" | "completed",
+        status_updated_at: new Date().toISOString(),
+      };
+
+      console.log("📤 Datos a actualizar:", updateData);
+
       const { error, data } = await supabase
         .from("briefs")
-        .update({
-          status: newStatus as any,
-          status_updated_at: new Date().toISOString(),
-        })
+        .update(updateData)
         .eq("id", briefId)
         .select();
 
       if (error) {
         console.error("❌ Error en Supabase:", error);
+        console.error("❌ Detalles del error:", {
+          message: error.message,
+          details: error.details,
+          hint: error.hint,
+          code: error.code
+        });
         throw new Error(`Error de base de datos: ${error.message}`);
       }
 
       console.log("✅ Actualización completada en BD:", data);
       console.log("📊 Datos actualizados:", data?.[0]);
+
+      // Verificar inmediatamente después de la actualización
+      console.log("🔍 Verificando actualización inmediata...");
+      const { data: verifyData, error: verifyError } = await supabase
+        .from("briefs")
+        .select("id, company_name, status, status_updated_at")
+        .eq("id", briefId)
+        .single();
+
+      if (verifyError) {
+        console.error("❌ Error verificando actualización:", verifyError);
+      } else {
+        console.log("✅ Verificación post-actualización:", verifyData);
+      }
 
       return { briefId, newStatus, company_name: currentBrief.company_name, updatedData: data?.[0] };
     },
@@ -420,18 +466,18 @@ const AdminDashboard = () => {
       });
 
       console.log("🎉 Proceso completado exitosamente");
-      console.log("📋 Verificando estado actual después de la actualización...");
       
-      // Verificar el estado después de la actualización
+      // Verificar el estado después de la actualización con un pequeño delay
       setTimeout(async () => {
-        const { data: verifyData } = await supabase
+        console.log("🔍 Verificación final después de invalidación...");
+        const { data: finalVerifyData } = await supabase
           .from("briefs")
           .select("id, company_name, status")
           .eq("id", data.briefId)
           .single();
         
-        console.log("🔍 Verificación post-actualización:", verifyData);
-      }, 1000);
+        console.log("🔍 Estado final en BD:", finalVerifyData);
+      }, 2000);
     },
   });
 
