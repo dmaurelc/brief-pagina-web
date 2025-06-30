@@ -304,21 +304,23 @@ const AdminDashboard = () => {
     data: briefs,
     isLoading,
     error,
+    refetch,
   } = useQuery({
     queryKey: ["admin-briefs"],
     queryFn: async () => {
-      console.log("Fetching briefs...");
+      console.log("🔄 Fetching briefs from database...");
       const { data, error } = await supabase
         .from("briefs")
         .select("*")
         .order("created_at", { ascending: false });
 
       if (error) {
-        console.error("Error fetching briefs:", error);
+        console.error("❌ Error fetching briefs:", error);
         throw error;
       }
 
-      console.log("Briefs fetched:", data?.length);
+      console.log("✅ Briefs fetched successfully:", data?.length, "briefs");
+      console.log("📊 Brief statuses:", data?.map(b => ({ id: b.id.slice(0, 8), company: b.company_name, status: b.status })));
       return data;
     },
     enabled: isAdmin === true,
@@ -332,47 +334,58 @@ const AdminDashboard = () => {
       briefId: string;
       newStatus: string;
     }) => {
-      console.log("🚀 Iniciando actualización de estado:", {
-        briefId,
-        newStatus,
-      });
+      console.log("🚀 INICIANDO ACTUALIZACIÓN DE ESTADO:");
+      console.log("  - Brief ID:", briefId.slice(0, 8));
+      console.log("  - Nuevo estado:", newStatus);
 
       const currentBrief = briefs?.find((b) => b.id === briefId);
       if (!currentBrief) {
         throw new Error(`Brief no encontrado: ${briefId}`);
       }
 
+      console.log("  - Brief actual:", currentBrief.company_name);
+      console.log("  - Estado actual:", currentBrief.status);
+
       const validStatuses = ["pending", "in_review", "quote_sent", "completed"];
       if (!validStatuses.includes(newStatus)) {
         throw new Error(`Estado inválido: ${newStatus}`);
       }
 
-      console.log("📝 Actualizando brief:", currentBrief.company_name);
-
-      const { error, count } = await supabase
+      const { error, data } = await supabase
         .from("briefs")
         .update({
           status: newStatus as any,
           status_updated_at: new Date().toISOString(),
         })
-        .eq("id", briefId);
+        .eq("id", briefId)
+        .select();
 
       if (error) {
         console.error("❌ Error en Supabase:", error);
         throw new Error(`Error de base de datos: ${error.message}`);
       }
 
-      console.log("✅ Actualización completada, registros afectados:", count);
+      console.log("✅ Actualización completada en BD:", data);
 
       return { briefId, newStatus, company_name: currentBrief.company_name };
     },
     onMutate: async ({ briefId, newStatus }) => {
+      console.log("🔄 ESTADO OPTIMISTA - Iniciando...");
+      
+      // Cancelar queries en progreso
       await queryClient.cancelQueries({ queryKey: ["admin-briefs"] });
-      const previousBriefs = queryClient.getQueryData(["admin-briefs"]);
+      
+      // Obtener estado previo
+      const previousBriefs = queryClient.getQueryData<Brief[]>(["admin-briefs"]);
+      
+      console.log("📝 ESTADO OPTIMISTA - Actualizando cache local:");
+      console.log("  - Brief ID:", briefId.slice(0, 8));
+      console.log("  - Nuevo estado:", newStatus);
 
-      queryClient.setQueryData(["admin-briefs"], (old: Brief[] | undefined) => {
+      // Actualizar cache optimísticamente
+      queryClient.setQueryData<Brief[]>(["admin-briefs"], (old) => {
         if (!old) return old;
-        return old.map((brief) =>
+        const updated = old.map((brief) =>
           brief.id === briefId
             ? {
                 ...brief,
@@ -381,41 +394,52 @@ const AdminDashboard = () => {
               }
             : brief
         );
+        
+        console.log("🔧 Cache actualizado optimísticamente");
+        console.log("  - Briefs totales:", updated.length);
+        console.log("  - Estados actualizados:", updated.map(b => ({ id: b.id.slice(0, 8), status: b.status })));
+        
+        return updated;
       });
 
       return { previousBriefs };
     },
     onError: (error, variables, context) => {
+      console.error("❌ ERROR EN MUTACIÓN:", error);
+
+      // Revertir estado optimista
       if (context?.previousBriefs) {
+        console.log("🔄 Revirtiendo estado optimista...");
         queryClient.setQueryData(["admin-briefs"], context.previousBriefs);
       }
 
-      console.error("❌ Error en mutación:", error);
-
       toast({
         title: "❌ Error al actualizar estado",
-        description:
-          error instanceof Error ? error.message : "Error desconocido",
+        description: error instanceof Error ? error.message : "Error desconocido",
         variant: "destructive",
       });
     },
-    onSuccess: (data) => {
-      console.log("✅ Mutación exitosa:", data);
+    onSuccess: async (data) => {
+      console.log("✅ MUTACIÓN EXITOSA:", data);
+      console.log("🔄 Refrescando datos desde servidor...");
 
-      queryClient.invalidateQueries({ queryKey: ["admin-briefs"] });
-
+      // Forzar actualización inmediata desde el servidor
+      await refetch();
+      
       toast({
         title: "✅ Estado actualizado",
         description: `"${data.company_name}" cambió a "${
           STATUS_CONFIG[data.newStatus as keyof typeof STATUS_CONFIG]?.label
         }".`,
       });
+
+      console.log("🎉 Proceso completado exitosamente");
     },
   });
 
   // Función para manejar cambio de estado por dropdown
   const handleStatusChange = (briefId: string, newStatus: string) => {
-    console.log("🔄 Cambio de estado por dropdown:", { briefId, newStatus });
+    console.log("🔄 CAMBIO POR DROPDOWN:", { briefId: briefId.slice(0, 8), newStatus });
     updateBriefStatusMutation.mutate({ briefId, newStatus });
   };
 
@@ -426,17 +450,15 @@ const AdminDashboard = () => {
 
   const handleDragStart = (event: DragStartEvent) => {
     setActiveId(event.active.id as string);
-    console.log("🎯 Drag iniciado para brief:", event.active.id);
+    console.log("🎯 DRAG INICIADO:", event.active.id);
   };
 
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
-
-    console.log("🎯 Drag terminado:", {
-      briefId: active.id,
-      targetColumn: over?.id,
-      hasValidTarget: !!over,
-    });
+    
+    console.log("🎯 DRAG TERMINADO:");
+    console.log("  - Brief ID:", active.id);
+    console.log("  - Columna destino:", over?.id);
 
     if (!over) {
       console.log("❌ No hay zona de drop válida");
@@ -449,31 +471,33 @@ const AdminDashboard = () => {
 
     const currentBrief = briefs?.find((b) => b.id === briefId);
     if (!currentBrief) {
-      console.error("❌ Brief no encontrado en handleDragEnd:", briefId);
-
+      console.error("❌ Brief no encontrado:", briefId);
       toast({
         title: "Error",
         description: "No se pudo encontrar el presupuesto seleccionado.",
         variant: "destructive",
       });
-
       setActiveId(null);
       return;
     }
 
     const currentStatus = currentBrief.status || "pending";
+    
+    console.log("📊 COMPARANDO ESTADOS:");
+    console.log("  - Estado actual:", currentStatus);
+    console.log("  - Estado nuevo:", newStatus);
 
     if (currentStatus !== newStatus) {
-      console.log("🚀 Ejecutando mutación por drag-and-drop...");
+      console.log("🚀 EJECUTANDO MUTACIÓN POR DRAG-AND-DROP...");
       updateBriefStatusMutation.mutate({ briefId, newStatus });
     } else {
-      console.log("ℹ️ El estado no ha cambiado");
+      console.log("ℹ️ El estado no ha cambiado, no se ejecuta mutación");
     }
 
     setActiveId(null);
   };
 
-  // Categorizar briefs por estado
+  // Categorizar briefs por estado con logging detallado
   const categorizedBriefs = briefs
     ? {
         pending: briefs.filter((b) => !b.status || b.status === "pending"),
@@ -482,6 +506,15 @@ const AdminDashboard = () => {
         completed: briefs.filter((b) => b.status === "completed"),
       }
     : null;
+
+  // Log de categorización
+  if (categorizedBriefs) {
+    console.log("📊 BRIEFS CATEGORIZADOS:");
+    console.log("  - Pendientes:", categorizedBriefs.pending.length);
+    console.log("  - En proceso:", categorizedBriefs.in_review.length);
+    console.log("  - Propuestas enviadas:", categorizedBriefs.quote_sent.length);
+    console.log("  - Completados:", categorizedBriefs.completed.length);
+  }
 
   // Configuración de las columnas del dashboard con nombres actualizados
   const columns = [
