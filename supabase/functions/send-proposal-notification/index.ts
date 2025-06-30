@@ -85,18 +85,19 @@ const handler = async (req: Request): Promise<Response> => {
               Si tienes alguna pregunta sobre la propuesta, no dudes en contactarnos respondiendo a este email.
             </p>
             <p style="color: #6b7280; font-size: 14px; margin-bottom: 0;">
-              <strong>Equipo Brief Página Web</strong><br>
-              Generador de presupuestos web personalizados
+              <strong>Diego Maurel</strong><br>
+              Desarrollador Web Full Stack<br>
+              <a href="https://dmaurel.cl" style="color: #2563eb;">dmaurel.cl</a>
             </p>
           </div>
         </div>
       </div>
     `;
 
-    console.log('📤 Enviando email via Resend...');
+    console.log('📤 Enviando email via Resend con dominio dmaurel.cl...');
 
     const emailResponse = await resend.emails.send({
-      from: "Brief Página Web <noreply@dmaurel.com>",
+      from: "Diego Maurel <noreply@dmaurel.cl>",
       to: [clientEmail],
       subject: `¡Tu propuesta para ${companyName} está lista! 🎉`,
       html: emailHtml,
@@ -106,32 +107,15 @@ const handler = async (req: Request): Promise<Response> => {
 
     if (emailResponse.error) {
       console.error('❌ Error en Resend:', emailResponse.error);
-      
-      // Verificar si el error es por dominio no verificado
-      if (emailResponse.error.message?.includes('domain is not verified')) {
-        console.error('🔒 Dominio no verificado en Resend');
-        return new Response(
-          JSON.stringify({ 
-            error: 'Domain verification required',
-            message: 'El dominio necesita ser verificado en Resend. Visita https://resend.com/domains',
-            details: emailResponse.error
-          }),
-          {
-            status: 403,
-            headers: { "Content-Type": "application/json", ...corsHeaders },
-          }
-        );
-      }
-      
       throw new Error(`Error de Resend: ${emailResponse.error.message}`);
     }
 
-    console.log('✅ Email enviado exitosamente');
+    console.log('✅ Email enviado exitosamente desde dmaurel.cl');
 
     return new Response(
       JSON.stringify({ 
         success: true,
-        message: 'Email enviado correctamente',
+        message: 'Email enviado correctamente desde dmaurel.cl',
         emailId: emailResponse.data?.id,
         recipient: clientEmail,
         company: companyName
