@@ -1,4 +1,3 @@
-
 import { useUser } from "@clerk/clerk-react";
 import {
   Card,
@@ -30,8 +29,9 @@ import ProposalDownloadButton from "@/components/ProposalDownloadButton";
 type Brief = Tables<"briefs">;
 type Proposal = Tables<"proposals">;
 
-interface BriefWithProposal extends Brief {
-  proposals?: Proposal[];
+// Actualizamos la interfaz para manejar correctamente los tipos de Supabase
+interface BriefWithProposals extends Brief {
+  proposals: Proposal[];
 }
 
 const MyAccount = () => {
@@ -54,7 +54,7 @@ const MyAccount = () => {
         .from("briefs")
         .select(`
           *,
-          proposals (*)
+          proposals!proposals_brief_id_fkey (*)
         `)
         .eq("email", user.emailAddresses[0].emailAddress)
         .order("created_at", { ascending: false });
@@ -78,7 +78,13 @@ const MyAccount = () => {
         });
       });
       
-      return data as BriefWithProposal[] || [];
+      // Transformamos los datos para asegurar que proposals siempre sea un array
+      const transformedData = data?.map(brief => ({
+        ...brief,
+        proposals: Array.isArray(brief.proposals) ? brief.proposals : []
+      })) || [];
+      
+      return transformedData as BriefWithProposals[];
     },  
     enabled: !!user?.emailAddresses?.[0]?.emailAddress && isLoaded,
   });
@@ -330,7 +336,7 @@ const MyAccount = () => {
                     <div className="space-y-4">
                       {userBriefs.map((brief) => {
                         // Get the first proposal for this brief (if any)
-                        const proposal = Array.isArray(brief.proposals) && brief.proposals.length > 0 
+                        const proposal = brief.proposals && brief.proposals.length > 0 
                           ? brief.proposals[0] 
                           : null;
                           
