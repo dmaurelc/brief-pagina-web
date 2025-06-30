@@ -11,10 +11,10 @@ import {
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Eye, Shield, AlertCircle } from "lucide-react";
+import { Edit, Shield, AlertCircle } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Tables } from "@/integrations/supabase/types";
-import BriefDetailModal from "@/components/BriefDetailModal";
+import BriefEditModal from "@/components/BriefEditModal";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import Header from "@/components/Header";
 
@@ -24,7 +24,7 @@ const Admin = () => {
   const { user, isLoaded } = useUser();
   const navigate = useNavigate();
   const [selectedBrief, setSelectedBrief] = useState<Brief | null>(null);
-  const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isAdmin, setIsAdmin] = useState<boolean | null>(null);
   const [adminCheckLoading, setAdminCheckLoading] = useState(true);
 
@@ -70,6 +70,7 @@ const Admin = () => {
     data: briefs,
     isLoading,
     error,
+    refetch,
   } = useQuery({
     queryKey: ["admin-briefs"],
     queryFn: async () => {
@@ -90,9 +91,9 @@ const Admin = () => {
     enabled: isAdmin === true, // Solo ejecutar si el usuario es admin
   });
 
-  const handleViewDetail = (brief: Brief) => {
+  const handleEditBrief = (brief: Brief) => {
     setSelectedBrief(brief);
-    setIsDetailModalOpen(true);
+    setIsEditModalOpen(true);
   };
 
   const getStatusBadgeColor = (status: string | null) => {
@@ -308,12 +309,12 @@ const Admin = () => {
                         </div>
                       </div>
                       <Button
-                        onClick={() => handleViewDetail(brief)}
+                        onClick={() => handleEditBrief(brief)}
                         size="sm"
                         variant="outline"
                       >
-                        <Eye className="w-4 h-4 mr-2" />
-                        Ver detalle
+                        <Edit className="w-4 h-4 mr-2" />
+                        Editar
                       </Button>
                     </div>
                   </div>
@@ -330,12 +331,15 @@ const Admin = () => {
         </Card>
 
         {selectedBrief && (
-          <BriefDetailModal
+          <BriefEditModal
             brief={selectedBrief}
-            isOpen={isDetailModalOpen}
+            isOpen={isEditModalOpen}
             onClose={() => {
-              setIsDetailModalOpen(false);
+              setIsEditModalOpen(false);
               setSelectedBrief(null);
+            }}
+            onBriefUpdated={() => {
+              refetch();
             }}
           />
         )}

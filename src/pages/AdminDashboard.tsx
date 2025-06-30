@@ -372,6 +372,7 @@ const AdminDashboard = () => {
         throw new Error(`Estado inválido: ${newStatus}`);
       }
 
+      console.log("🔄 Enviando actualización a Supabase...");
       const { error, data } = await supabase
         .from("briefs")
         .update({
@@ -387,8 +388,9 @@ const AdminDashboard = () => {
       }
 
       console.log("✅ Actualización completada en BD:", data);
+      console.log("📊 Datos actualizados:", data?.[0]);
 
-      return { briefId, newStatus, company_name: currentBrief.company_name };
+      return { briefId, newStatus, company_name: currentBrief.company_name, updatedData: data?.[0] };
     },
     onError: (error) => {
       console.error("❌ ERROR EN MUTACIÓN:", error);
@@ -404,8 +406,9 @@ const AdminDashboard = () => {
       console.log("✅ MUTACIÓN EXITOSA:", data);
       console.log("🔄 Invalidando queries para forzar re-render...");
 
-      // Invalidar queries para forzar re-fetch completo
+      // Invalidar y refetch para asegurar datos actualizados
       await queryClient.invalidateQueries({ queryKey: ["admin-briefs"] });
+      await refetch();
       
       setIsDragInProgress(false);
       
@@ -417,6 +420,18 @@ const AdminDashboard = () => {
       });
 
       console.log("🎉 Proceso completado exitosamente");
+      console.log("📋 Verificando estado actual después de la actualización...");
+      
+      // Verificar el estado después de la actualización
+      setTimeout(async () => {
+        const { data: verifyData } = await supabase
+          .from("briefs")
+          .select("id, company_name, status")
+          .eq("id", data.briefId)
+          .single();
+        
+        console.log("🔍 Verificación post-actualización:", verifyData);
+      }, 1000);
     },
   });
 

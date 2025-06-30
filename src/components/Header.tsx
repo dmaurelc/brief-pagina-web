@@ -1,3 +1,4 @@
+
 import {
   SignedIn,
   SignedOut,
@@ -89,7 +90,7 @@ const Header = () => {
                     {isAdmin && (
                       <>
                         <DropdownMenuSeparator />
-                        <DropdownMenuItem onClick={() => navigate("/admin")}>
+                        <DropdownMenuItem onClick={() => navigate("/dashboard")}>
                           <Shield className="w-4 h-4 mr-2" />
                           Dashboard Admin
                         </DropdownMenuItem>
