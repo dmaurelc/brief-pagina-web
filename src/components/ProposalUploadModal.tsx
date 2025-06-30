@@ -33,7 +33,6 @@ const ProposalUploadModal = ({
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [adminNotes, setAdminNotes] = useState('');
 
-  // Verificar permisos de admin antes de permitir cualquier acción
   if (adminLoading) {
     return (
       <Dialog open={isOpen} onOpenChange={onClose}>
@@ -74,7 +73,6 @@ const ProposalUploadModal = ({
     );
   }
 
-  // Función para sanitizar nombres de archivo
   const sanitizeFileName = (fileName: string): string => {
     const sanitized = fileName
       .replace(/[^\w\s.-]/g, '') 
@@ -82,15 +80,14 @@ const ProposalUploadModal = ({
       .replace(/_{2,}/g, '_') 
       .toLowerCase();
     
-    console.log('🔧 Nombre original:', fileName);
-    console.log('🔧 Nombre sanitizado:', sanitized);
+    console.log('🔧 Sanitizing filename:', fileName, '->', sanitized);
     return sanitized;
   };
 
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
-      console.log('📁 Archivo seleccionado:', file.name, 'Tamaño:', file.size, 'Tipo:', file.type);
+      console.log('📁 File selected:', file.name, 'Size:', file.size, 'Type:', file.type);
       
       if (file.type !== 'application/pdf') {
         toast({
@@ -122,7 +119,6 @@ const ProposalUploadModal = ({
       return;
     }
 
-    // Verificación adicional de admin antes de proceder
     if (!isAdmin) {
       toast({
         title: 'Error de permisos',
@@ -133,19 +129,17 @@ const ProposalUploadModal = ({
     }
 
     setIsUploading(true);
-    console.log('🚀 Iniciando proceso de upload como admin...');
-    console.log('👤 Usuario admin:', user.emailAddresses[0].emailAddress);
+    console.log('🚀 Starting proposal upload process...');
+    console.log('👤 Admin user:', user.emailAddresses[0].emailAddress);
 
     try {
-      // 1. Sanitizar y crear nombre de archivo único
+      // 1. Create unique filename
       const sanitizedOriginalName = sanitizeFileName(selectedFile.name);
       const fileName = `${briefId}_${Date.now()}_${sanitizedOriginalName}`;
       
-      console.log('📤 Subiendo archivo:', fileName);
-      console.log('🗂️ Al bucket: proposals');
-      console.log('📊 Tamaño del archivo:', selectedFile.size);
+      console.log('📤 Uploading file:', fileName);
 
-      // 2. Subir archivo a Supabase Storage
+      // 2. Upload to Supabase Storage (crear bucket si no existe)
       const { data: uploadData, error: uploadError } = await supabase.storage
         .from('proposals')
         .upload(fileName, selectedFile, {
@@ -154,25 +148,54 @@ const ProposalUploadModal = ({
         });
 
       if (uploadError) {
-        console.error('❌ Error detallado de upload:', uploadError);
-        throw new Error(`Error subiendo archivo: ${uploadError.message}`);
+        console.error('❌ Upload error:', uploadError);
+        
+        // Si el bucket no existe, intentar crearlo
+        if (uploadError.message?.includes('bucket') || uploadError.message?.includes('not found')) {
+          console.log('🪣 Creating proposals bucket...');
+          const { error: bucketError } = await supabase.storage.createBucket('proposals', {
+            public: false,
+            allowedMimeTypes: ['application/pdf'],
+            fileSizeLimit: 10485760 // 10MB
+          });
+          
+          if (bucketError) {
+            console.error('❌ Bucket creation error:', bucketError);
+          } else {
+            console.log('✅ Bucket created, retrying upload...');
+            // Retry upload
+            const { data: retryUploadData, error: retryUploadError } = await supabase.storage
+              .from('proposals')
+              .upload(fileName, selectedFile, {
+                cacheControl: '3600',
+                upsert: false
+              });
+            
+            if (retryUploadError) {
+              throw new Error(`Error subiendo archivo después de crear bucket: ${retryUploadError.message}`);
+            }
+            console.log('✅ File uploaded successfully after bucket creation');
+          }
+        } else {
+          throw new Error(`Error subiendo archivo: ${uploadError.message}`);
+        }
+      } else {
+        console.log('✅ File uploaded successfully:', uploadData);
       }
 
-      console.log('✅ Archivo subido exitosamente:', uploadData);
-
-      // 3. Crear registro en la tabla proposals (ahora sin restricciones RLS problemáticas)
-      console.log('💾 Creando registro en tabla proposals...');
+      // 3. Create proposal record with simplified approach
+      console.log('💾 Creating proposal record...');
       const proposalData = {
         brief_id: briefId,
         file_path: fileName,
-        file_name: selectedFile.name, // Usar nombre original para mostrar
+        file_name: selectedFile.name,
         file_size: selectedFile.size,
         uploaded_by: user.emailAddresses[0].emailAddress,
         client_message: adminNotes || null,
         email_sent_at: new Date().toISOString()
       };
 
-      console.log('📝 Datos de propuesta a insertar:', proposalData);
+      console.log('📝 Proposal data:', proposalData);
 
       const { data: createdProposal, error: proposalError } = await supabase
         .from('proposals')
@@ -181,34 +204,31 @@ const ProposalUploadModal = ({
         .single();
 
       if (proposalError) {
-        console.error('❌ Error detallado creando propuesta:', proposalError);
-        console.error('❌ Código de error:', proposalError.code);
-        console.error('❌ Detalles:', proposalError.details);
-        console.error('❌ Hint:', proposalError.hint);
+        console.error('❌ Proposal creation error:', proposalError);
         throw new Error(`Error creando propuesta: ${proposalError.message}`);
       }
 
-      console.log('✅ Propuesta creada exitosamente:', createdProposal);
+      console.log('✅ Proposal created successfully:', createdProposal);
 
-      // 4. Actualizar el brief con el ID de la propuesta
-      console.log('🔄 Actualizando brief...');
+      // 4. Update brief status
+      console.log('🔄 Updating brief status...');
       const { error: briefUpdateError } = await supabase
         .from('briefs')
         .update({ 
           proposal_id: createdProposal.id,
-          status: 'quote_sent'
+          status: 'quote_sent' as const
         })
         .eq('id', briefId);
 
       if (briefUpdateError) {
-        console.error('❌ Error detallado actualizando brief:', briefUpdateError);
+        console.error('❌ Brief update error:', briefUpdateError);
         throw new Error(`Error actualizando brief: ${briefUpdateError.message}`);
       }
 
-      console.log('✅ Brief actualizado exitosamente');
+      console.log('✅ Brief updated successfully');
 
-      // 5. Enviar notificación por email
-      console.log('📧 Enviando notificación por email...');
+      // 5. Send email notification
+      console.log('📧 Sending email notification...');
       try {
         const { error: emailError } = await supabase.functions.invoke('send-proposal-notification', {
           body: {
@@ -220,21 +240,21 @@ const ProposalUploadModal = ({
         });
 
         if (emailError) {
-          console.warn('⚠️ Error enviando email:', emailError);
+          console.warn('⚠️ Email error:', emailError);
           toast({
             title: 'Propuesta enviada con advertencia',
             description: 'La propuesta se subió correctamente pero hubo un problema enviando el email',
             variant: 'default',
           });
         } else {
-          console.log('✅ Email enviado exitosamente');
+          console.log('✅ Email sent successfully');
           toast({
             title: 'Propuesta enviada exitosamente',
             description: `Se ha enviado la propuesta a ${clientEmail}`,
           });
         }
       } catch (emailError) {
-        console.warn('⚠️ Error en función de email:', emailError);
+        console.warn('⚠️ Email function error:', emailError);
         toast({
           title: 'Propuesta enviada con advertencia',
           description: 'La propuesta se subió correctamente pero hubo un problema enviando el email',
@@ -246,8 +266,7 @@ const ProposalUploadModal = ({
       onClose();
       
     } catch (error: any) {
-      console.error('💥 Error completo en el proceso:', error);
-      console.error('🔍 Stack trace:', error.stack);
+      console.error('💥 Complete process error:', error);
       toast({
         title: 'Error enviando propuesta',
         description: error.message || 'Hubo un problema procesando la propuesta',
