@@ -85,9 +85,9 @@ const handler = async (req: Request): Promise<Response> => {
               Si tienes alguna pregunta sobre la propuesta, no dudes en contactarnos respondiendo a este email.
             </p>
             <p style="color: #6b7280; font-size: 14px; margin-bottom: 0;">
-              <strong>Diego Maurel</strong><br>
-              Desarrollador Web Full Stack<br>
-              <a href="https://dmaurel.cl" style="color: #2563eb;">dmaurel.cl</a>
+              <strong>Daniel Maurel</strong><br>
+              Desarrollador Web<br>
+              <a href="https://www.dmaurel.cl" style="color: #2563eb;">dmaurel.cl</a>
             </p>
           </div>
         </div>
@@ -97,7 +97,7 @@ const handler = async (req: Request): Promise<Response> => {
     console.log('📤 Enviando email via Resend con dominio dmaurel.cl...');
 
     const emailResponse = await resend.emails.send({
-      from: "Diego Maurel <noreply@dmaurel.cl>",
+      from: "Daniel Maurel <noreply@dmaurel.cl>",
       to: [clientEmail],
       subject: `¡Tu propuesta para ${companyName} está lista! 🎉`,
       html: emailHtml,
