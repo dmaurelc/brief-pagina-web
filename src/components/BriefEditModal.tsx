@@ -23,13 +23,16 @@ import {
   DollarSign,
   Clock,
   MessageCircle,
-  Send
+  Send,
+  AlertCircle
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useUser } from '@clerk/clerk-react';
 import { Tables } from '@/integrations/supabase/types';
 import ProposalDropzone from './ProposalDropzone';
+import ProposalUpdateDropzone from './ProposalUpdateDropzone';
+import { useProposalData } from '@/hooks/useProposalData';
 
 type Brief = Tables<'briefs'>;
 type BriefStatus = 'pending' | 'in_review' | 'quote_sent' | 'completed' | 'cancelled';
@@ -54,6 +57,9 @@ const BriefEditModal = ({ brief, isOpen, onClose, onBriefUpdated }: BriefEditMod
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState('info');
   const [isUpdating, setIsUpdating] = useState(false);
+  
+  // Hook para obtener datos de la propuesta actual
+  const { proposal: currentProposal, loading: proposalLoading, error: proposalError } = useProposalData(brief.proposal_id);
   
   // Estados del formulario
   const [formData, setFormData] = useState({
@@ -376,15 +382,39 @@ const BriefEditModal = ({ brief, isOpen, onClose, onBriefUpdated }: BriefEditMod
                 </CardHeader>
                 <CardContent>
                   {brief.proposal_id ? (
-                    <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
-                      <div className="flex items-center gap-2 text-green-800">
-                        <Send className="w-4 h-4" />
-                        <span className="font-medium">Propuesta enviada</span>
-                      </div>
-                      <p className="text-green-700 text-sm mt-1">
-                        Ya se ha enviado una propuesta para este presupuesto.
-                      </p>
-                    </div>
+                    <>
+                      {proposalLoading ? (
+                        <div className="text-center py-8">
+                          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+                          <p className="text-muted-foreground">Cargando información de la propuesta...</p>
+                        </div>
+                      ) : proposalError ? (
+                        <div className="text-center py-8">
+                          <AlertCircle className="w-12 h-12 mx-auto text-red-500 mb-4" />
+                          <h3 className="text-lg font-medium mb-2 text-red-600">Error cargando propuesta</h3>
+                          <p className="text-muted-foreground">{proposalError}</p>
+                        </div>
+                      ) : currentProposal ? (
+                        <ProposalUpdateDropzone
+                          briefId={brief.id}
+                          companyName={brief.company_name}
+                          clientEmail={brief.email}
+                          currentProposal={currentProposal}
+                          onProposalUpdated={() => {
+                            onBriefUpdated();
+                            onClose();
+                          }}
+                        />
+                      ) : (
+                        <div className="text-center py-8">
+                          <AlertCircle className="w-12 h-12 mx-auto text-yellow-500 mb-4" />
+                          <h3 className="text-lg font-medium mb-2">Propuesta no encontrada</h3>
+                          <p className="text-muted-foreground">
+                            No se pudo cargar la información de la propuesta.
+                          </p>
+                        </div>
+                      )}
+                    </>
                   ) : (
                     <ProposalDropzone
                       briefId={brief.id}
