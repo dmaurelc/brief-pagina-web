@@ -33,9 +33,25 @@ const ProposalUploadModal = ({
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [adminNotes, setAdminNotes] = useState('');
 
+  // Función para sanitizar nombres de archivo
+  const sanitizeFileName = (fileName: string): string => {
+    // Remover caracteres especiales y espacios, mantener solo letras, números, puntos y guiones
+    const sanitized = fileName
+      .replace(/[^\w\s.-]/g, '') // Remover caracteres especiales excepto espacios, puntos y guiones
+      .replace(/\s+/g, '_') // Reemplazar espacios con guiones bajos
+      .replace(/_{2,}/g, '_') // Reemplazar múltiples guiones bajos con uno solo
+      .toLowerCase(); // Convertir a minúsculas
+    
+    console.log('Nombre original:', fileName);
+    console.log('Nombre sanitizado:', sanitized);
+    return sanitized;
+  };
+
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
+      console.log('Archivo seleccionado:', file.name, 'Tamaño:', file.size, 'Tipo:', file.type);
+      
       if (file.type !== 'application/pdf') {
         toast({
           title: 'Tipo de archivo inválido',
@@ -67,25 +83,40 @@ const ProposalUploadModal = ({
     }
 
     setIsUploading(true);
+    console.log('Iniciando proceso de upload...');
 
     try {
-      // 1. Subir archivo a Supabase Storage
-      const fileName = `${briefId}_${Date.now()}_${selectedFile.name}`;
+      // 1. Sanitizar y crear nombre de archivo único
+      const sanitizedOriginalName = sanitizeFileName(selectedFile.name);
+      const fileName = `${briefId}_${Date.now()}_${sanitizedOriginalName}`;
+      
+      console.log('Subiendo archivo con nombre:', fileName);
+      console.log('Al bucket: proposals');
+      console.log('Tamaño del archivo:', selectedFile.size);
+
+      // 2. Subir archivo a Supabase Storage
       const { data: uploadData, error: uploadError } = await supabase.storage
         .from('proposals')
-        .upload(fileName, selectedFile);
+        .upload(fileName, selectedFile, {
+          cacheControl: '3600',
+          upsert: false
+        });
 
       if (uploadError) {
+        console.error('Error detallado de upload:', uploadError);
         throw new Error(`Error subiendo archivo: ${uploadError.message}`);
       }
 
-      // 2. Crear registro en la tabla proposals
+      console.log('Archivo subido exitosamente:', uploadData);
+
+      // 3. Crear registro en la tabla proposals
+      console.log('Creando registro en tabla proposals...');
       const { data: proposalData, error: proposalError } = await supabase
         .from('proposals')
         .insert({
           brief_id: briefId,
           file_path: fileName,
-          file_name: selectedFile.name,
+          file_name: selectedFile.name, // Usar nombre original para mostrar
           file_size: selectedFile.size,
           uploaded_by: user.emailAddresses[0].emailAddress,
           client_message: adminNotes || null,
@@ -95,10 +126,14 @@ const ProposalUploadModal = ({
         .single();
 
       if (proposalError) {
+        console.error('Error detallado creando propuesta:', proposalError);
         throw new Error(`Error creando propuesta: ${proposalError.message}`);
       }
 
-      // 3. Actualizar el brief con el ID de la propuesta
+      console.log('Propuesta creada exitosamente:', proposalData);
+
+      // 4. Actualizar el brief con el ID de la propuesta
+      console.log('Actualizando brief...');
       const { error: briefUpdateError } = await supabase
         .from('briefs')
         .update({ 
@@ -108,31 +143,44 @@ const ProposalUploadModal = ({
         .eq('id', briefId);
 
       if (briefUpdateError) {
+        console.error('Error detallado actualizando brief:', briefUpdateError);
         throw new Error(`Error actualizando brief: ${briefUpdateError.message}`);
       }
 
-      // 4. Enviar notificación por email
-      const { error: emailError } = await supabase.functions.invoke('send-proposal-notification', {
-        body: {
-          clientEmail,
-          companyName,
-          adminNotes,
-          fileName: selectedFile.name
-        }
-      });
+      console.log('Brief actualizado exitosamente');
 
-      if (emailError) {
-        console.warn('Error enviando email:', emailError);
-        // No fallar la operación por el email, solo advertir
+      // 5. Enviar notificación por email
+      console.log('Enviando notificación por email...');
+      try {
+        const { error: emailError } = await supabase.functions.invoke('send-proposal-notification', {
+          body: {
+            clientEmail,
+            companyName,
+            adminNotes,
+            fileName: selectedFile.name
+          }
+        });
+
+        if (emailError) {
+          console.warn('Error enviando email:', emailError);
+          toast({
+            title: 'Propuesta enviada con advertencia',
+            description: 'La propuesta se subió correctamente pero hubo un problema enviando el email',
+            variant: 'default',
+          });
+        } else {
+          console.log('Email enviado exitosamente');
+          toast({
+            title: 'Propuesta enviada exitosamente',
+            description: `Se ha enviado la propuesta a ${clientEmail}`,
+          });
+        }
+      } catch (emailError) {
+        console.warn('Error en función de email:', emailError);
         toast({
           title: 'Propuesta enviada con advertencia',
           description: 'La propuesta se subió correctamente pero hubo un problema enviando el email',
           variant: 'default',
-        });
-      } else {
-        toast({
-          title: 'Propuesta enviada exitosamente',
-          description: `Se ha enviado la propuesta a ${clientEmail}`,
         });
       }
 
@@ -140,7 +188,8 @@ const ProposalUploadModal = ({
       onClose();
       
     } catch (error: any) {
-      console.error('Error en el proceso:', error);
+      console.error('Error completo en el proceso:', error);
+      console.error('Stack trace:', error.stack);
       toast({
         title: 'Error enviando propuesta',
         description: error.message || 'Hubo un problema procesando la propuesta',
