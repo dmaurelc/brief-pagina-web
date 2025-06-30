@@ -1,4 +1,3 @@
-
 import { useUser } from "@clerk/clerk-react";
 import {
   Card,
@@ -59,7 +58,7 @@ const MyAccount = () => {
       // Transform data to include proposal information
       return data.map(brief => ({
         ...brief,
-        proposal: brief.proposals && brief.proposals.length > 0 ? brief.proposals[0] : null
+        proposal: Array.isArray(brief.proposals) && brief.proposals.length > 0 ? brief.proposals[0] : null
       })) as BriefWithProposal[];
     },  
     enabled: !!user?.emailAddresses?.[0]?.emailAddress && isLoaded,
