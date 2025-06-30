@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -30,7 +29,7 @@ import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useUser } from '@clerk/clerk-react';
 import { Tables } from '@/integrations/supabase/types';
-import ProposalUploadModal from './ProposalUploadModal';
+import ProposalDropzone from './ProposalDropzone';
 
 type Brief = Tables<'briefs'>;
 type BriefStatus = 'pending' | 'in_review' | 'quote_sent' | 'completed' | 'cancelled';
@@ -43,11 +42,11 @@ interface BriefEditModalProps {
 }
 
 const STATUS_CONFIG = {
-  pending: { label: 'Pendiente', color: 'bg-yellow-500', description: 'Esperando revisión inicial' },
-  in_review: { label: 'En Proceso', color: 'bg-blue-500', description: 'Siendo revisado por el equipo' },
-  quote_sent: { label: 'Propuesta Enviada', color: 'bg-green-500', description: 'Propuesta enviada al cliente' },
-  completed: { label: 'Completado', color: 'bg-purple-500', description: 'Proyecto finalizado' },
-  cancelled: { label: 'Cancelado', color: 'bg-red-500', description: 'Proyecto cancelado' },
+  pending: { label: 'Pendiente', color: 'bg-yellow-500 text-white', description: 'Esperando revisión inicial' },
+  in_review: { label: 'En Proceso', color: 'bg-blue-500 text-white', description: 'Siendo revisado por el equipo' },
+  quote_sent: { label: 'Propuesta Enviada', color: 'bg-green-500 text-white', description: 'Propuesta enviada al cliente' },
+  completed: { label: 'Completado', color: 'bg-purple-500 text-white', description: 'Proyecto finalizado' },
+  cancelled: { label: 'Cancelado', color: 'bg-red-500 text-white', description: 'Proyecto cancelado' },
 } as const;
 
 const BriefEditModal = ({ brief, isOpen, onClose, onBriefUpdated }: BriefEditModalProps) => {
@@ -55,7 +54,6 @@ const BriefEditModal = ({ brief, isOpen, onClose, onBriefUpdated }: BriefEditMod
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState('info');
   const [isUpdating, setIsUpdating] = useState(false);
-  const [isProposalModalOpen, setIsProposalModalOpen] = useState(false);
   
   // Estados del formulario
   const [formData, setFormData] = useState({
@@ -322,7 +320,7 @@ const BriefEditModal = ({ brief, isOpen, onClose, onBriefUpdated }: BriefEditMod
                         {Object.entries(STATUS_CONFIG).map(([key, config]) => (
                           <SelectItem key={key} value={key}>
                             <div className="flex items-center gap-2">
-                              <div className={`w-3 h-3 rounded-full ${config.color}`} />
+                              <div className={`w-3 h-3 rounded-full ${config.color.replace('text-white', 'border border-white/20')}`} />
                               <span>{config.label}</span>
                             </div>
                           </SelectItem>
@@ -376,23 +374,8 @@ const BriefEditModal = ({ brief, isOpen, onClose, onBriefUpdated }: BriefEditMod
                     Gestión de Propuestas
                   </CardTitle>
                 </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="text-center py-8">
-                    <FileText className="w-16 h-16 mx-auto text-muted-foreground mb-4" />
-                    <h3 className="text-lg font-medium mb-2">Enviar Propuesta al Cliente</h3>
-                    <p className="text-muted-foreground mb-6">
-                      Sube un archivo PDF con la propuesta comercial y notifica automáticamente al cliente.
-                    </p>
-                    <Button 
-                      onClick={() => setIsProposalModalOpen(true)}
-                      className="flex items-center gap-2"
-                    >
-                      <Upload className="w-4 h-4" />
-                      Subir y Enviar Propuesta
-                    </Button>
-                  </div>
-
-                  {brief.proposal_id && (
+                <CardContent>
+                  {brief.proposal_id ? (
                     <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
                       <div className="flex items-center gap-2 text-green-800">
                         <Send className="w-4 h-4" />
@@ -402,6 +385,16 @@ const BriefEditModal = ({ brief, isOpen, onClose, onBriefUpdated }: BriefEditMod
                         Ya se ha enviado una propuesta para este presupuesto.
                       </p>
                     </div>
+                  ) : (
+                    <ProposalDropzone
+                      briefId={brief.id}
+                      companyName={brief.company_name}
+                      clientEmail={brief.email}
+                      onProposalUploaded={() => {
+                        onBriefUpdated();
+                        onClose();
+                      }}
+                    />
                   )}
                 </CardContent>
               </Card>
@@ -412,7 +405,7 @@ const BriefEditModal = ({ brief, isOpen, onClose, onBriefUpdated }: BriefEditMod
             <div className="flex items-center gap-2">
               <Badge 
                 variant="secondary" 
-                className={`${STATUS_CONFIG[formData.status as keyof typeof STATUS_CONFIG]?.color} text-white`}
+                className={STATUS_CONFIG[formData.status as keyof typeof STATUS_CONFIG]?.color}
               >
                 {STATUS_CONFIG[formData.status as keyof typeof STATUS_CONFIG]?.label}
               </Badge>
@@ -433,18 +426,6 @@ const BriefEditModal = ({ brief, isOpen, onClose, onBriefUpdated }: BriefEditMod
           </div>
         </DialogContent>
       </Dialog>
-
-      <ProposalUploadModal
-        isOpen={isProposalModalOpen}
-        onClose={() => setIsProposalModalOpen(false)}
-        briefId={brief.id}
-        companyName={brief.company_name}
-        clientEmail={brief.email}
-        onProposalUploaded={() => {
-          setIsProposalModalOpen(false);
-          onBriefUpdated();
-        }}
-      />
     </>
   );
 };

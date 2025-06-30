@@ -25,6 +25,7 @@ import { useAdminRole } from "@/hooks/useAdminRole";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import Header from "@/components/Header";
 import ProposalDownloadButton from "@/components/ProposalDownloadButton";
+import { getBudgetLabel, getTimelineLabel, getProjectTypeLabel, getIndustryLabel } from "@/utils/labelMappers";
 
 type Brief = Tables<"briefs">;
 type Proposal = Tables<"proposals">;
@@ -108,17 +109,34 @@ const MyAccount = () => {
   const getStatusBadgeColor = (status: string | null) => {
     switch (status) {
       case "pending":
-        return "bg-yellow-100 text-yellow-800";
+        return "bg-yellow-500 text-white";
       case "in_review":
-        return "bg-blue-100 text-blue-800";
+        return "bg-blue-500 text-white";
       case "quote_sent":
-        return "bg-green-100 text-green-800";
+        return "bg-green-500 text-white";
       case "completed":
-        return "bg-gray-100 text-gray-800";
+        return "bg-purple-500 text-white";
       case "cancelled":
-        return "bg-red-100 text-red-800";
+        return "bg-red-500 text-white";
       default:
-        return "bg-gray-100 text-gray-800";
+        return "bg-gray-500 text-white";
+    }
+  };
+
+  const getStatusLabel = (status: string | null) => {
+    switch (status) {
+      case "pending":
+        return "Pendiente";
+      case "in_review":
+        return "En Proceso";
+      case "quote_sent":
+        return "Propuesta Enviada";
+      case "completed":
+        return "Completado";
+      case "cancelled":
+        return "Cancelado";
+      default:
+        return "Pendiente";
     }
   };
 
@@ -292,7 +310,7 @@ const MyAccount = () => {
                               <Badge
                                 className={getStatusBadgeColor(brief.status)}
                               >
-                                {brief.status || "pending"}
+                                {getStatusLabel(brief.status)}
                               </Badge>
                             </div>
                             <p className="text-sm text-muted-foreground">
@@ -355,7 +373,7 @@ const MyAccount = () => {
                                   {brief.company_name}
                                 </h3>
                                 <p className="text-muted-foreground">
-                                  {brief.project_type}
+                                  {getProjectTypeLabel(brief.project_type)}
                                 </p>
                               </div>
                               <Badge
@@ -363,7 +381,7 @@ const MyAccount = () => {
                               >
                                 <div className="flex items-center gap-1">
                                   {getStatusIcon(brief.status)}
-                                  {brief.status || "pending"}
+                                  {getStatusLabel(brief.status)}
                                 </div>
                               </Badge>
                             </div>
@@ -371,15 +389,15 @@ const MyAccount = () => {
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm mb-4">
                               <div>
                                 <span className="font-medium">Presupuesto:</span>{" "}
-                                {brief.budget}
+                                {getBudgetLabel(brief.budget)}
                               </div>
                               <div>
                                 <span className="font-medium">Timeline:</span>{" "}
-                                {brief.timeline}
+                                {getTimelineLabel(brief.timeline)}
                               </div>
                               <div>
                                 <span className="font-medium">Industria:</span>{" "}
-                                {brief.industry}
+                                {getIndustryLabel(brief.industry)}
                               </div>
                               <div>
                                 <span className="font-medium">Enviado:</span>{" "}
