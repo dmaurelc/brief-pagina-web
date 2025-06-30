@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { useUser } from "@clerk/clerk-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -252,6 +252,7 @@ const AdminDashboard = () => {
   const [isAdmin, setIsAdmin] = useState<boolean | null>(null);
   const [adminCheckLoading, setAdminCheckLoading] = useState(true);
   const [activeId, setActiveId] = useState<string | null>(null);
+  const [isDragInProgress, setIsDragInProgress] = useState(false);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -326,6 +327,26 @@ const AdminDashboard = () => {
     enabled: isAdmin === true,
   });
 
+  // Categorizar briefs por estado con useMemo para optimización
+  const categorizedBriefs = useMemo(() => {
+    if (!briefs) return null;
+
+    const categorized = {
+      pending: briefs.filter((b) => !b.status || b.status === "pending"),
+      in_review: briefs.filter((b) => b.status === "in_review"),
+      quote_sent: briefs.filter((b) => b.status === "quote_sent"),
+      completed: briefs.filter((b) => b.status === "completed"),
+    };
+
+    console.log("🔄 BRIEFS RECATEGORIZADOS:");
+    console.log("  - Pendientes:", categorized.pending.length);
+    console.log("  - En proceso:", categorized.in_review.length);
+    console.log("  - Propuestas enviadas:", categorized.quote_sent.length);
+    console.log("  - Completados:", categorized.completed.length);
+
+    return categorized;
+  }, [briefs]);
+
   const updateBriefStatusMutation = useMutation({
     mutationFn: async ({
       briefId,
@@ -369,49 +390,9 @@ const AdminDashboard = () => {
 
       return { briefId, newStatus, company_name: currentBrief.company_name };
     },
-    onMutate: async ({ briefId, newStatus }) => {
-      console.log("🔄 ESTADO OPTIMISTA - Iniciando...");
-      
-      // Cancelar queries en progreso
-      await queryClient.cancelQueries({ queryKey: ["admin-briefs"] });
-      
-      // Obtener estado previo
-      const previousBriefs = queryClient.getQueryData<Brief[]>(["admin-briefs"]);
-      
-      console.log("📝 ESTADO OPTIMISTA - Actualizando cache local:");
-      console.log("  - Brief ID:", briefId.slice(0, 8));
-      console.log("  - Nuevo estado:", newStatus);
-
-      // Actualizar cache optimísticamente
-      queryClient.setQueryData<Brief[]>(["admin-briefs"], (old) => {
-        if (!old) return old;
-        const updated = old.map((brief) =>
-          brief.id === briefId
-            ? {
-                ...brief,
-                status: newStatus as any,
-                status_updated_at: new Date().toISOString(),
-              }
-            : brief
-        );
-        
-        console.log("🔧 Cache actualizado optimísticamente");
-        console.log("  - Briefs totales:", updated.length);
-        console.log("  - Estados actualizados:", updated.map(b => ({ id: b.id.slice(0, 8), status: b.status })));
-        
-        return updated;
-      });
-
-      return { previousBriefs };
-    },
-    onError: (error, variables, context) => {
+    onError: (error) => {
       console.error("❌ ERROR EN MUTACIÓN:", error);
-
-      // Revertir estado optimista
-      if (context?.previousBriefs) {
-        console.log("🔄 Revirtiendo estado optimista...");
-        queryClient.setQueryData(["admin-briefs"], context.previousBriefs);
-      }
+      setIsDragInProgress(false);
 
       toast({
         title: "❌ Error al actualizar estado",
@@ -421,10 +402,12 @@ const AdminDashboard = () => {
     },
     onSuccess: async (data) => {
       console.log("✅ MUTACIÓN EXITOSA:", data);
-      console.log("🔄 Refrescando datos desde servidor...");
+      console.log("🔄 Invalidando queries para forzar re-render...");
 
-      // Forzar actualización inmediata desde el servidor
-      await refetch();
+      // Invalidar queries para forzar re-fetch completo
+      await queryClient.invalidateQueries({ queryKey: ["admin-briefs"] });
+      
+      setIsDragInProgress(false);
       
       toast({
         title: "✅ Estado actualizado",
@@ -440,6 +423,7 @@ const AdminDashboard = () => {
   // Función para manejar cambio de estado por dropdown
   const handleStatusChange = (briefId: string, newStatus: string) => {
     console.log("🔄 CAMBIO POR DROPDOWN:", { briefId: briefId.slice(0, 8), newStatus });
+    setIsDragInProgress(true);
     updateBriefStatusMutation.mutate({ briefId, newStatus });
   };
 
@@ -450,6 +434,7 @@ const AdminDashboard = () => {
 
   const handleDragStart = (event: DragStartEvent) => {
     setActiveId(event.active.id as string);
+    setIsDragInProgress(true);
     console.log("🎯 DRAG INICIADO:", event.active.id);
   };
 
@@ -463,6 +448,7 @@ const AdminDashboard = () => {
     if (!over) {
       console.log("❌ No hay zona de drop válida");
       setActiveId(null);
+      setIsDragInProgress(false);
       return;
     }
 
@@ -478,6 +464,7 @@ const AdminDashboard = () => {
         variant: "destructive",
       });
       setActiveId(null);
+      setIsDragInProgress(false);
       return;
     }
 
@@ -492,29 +479,11 @@ const AdminDashboard = () => {
       updateBriefStatusMutation.mutate({ briefId, newStatus });
     } else {
       console.log("ℹ️ El estado no ha cambiado, no se ejecuta mutación");
+      setIsDragInProgress(false);
     }
 
     setActiveId(null);
   };
-
-  // Categorizar briefs por estado con logging detallado
-  const categorizedBriefs = briefs
-    ? {
-        pending: briefs.filter((b) => !b.status || b.status === "pending"),
-        in_review: briefs.filter((b) => b.status === "in_review"),
-        quote_sent: briefs.filter((b) => b.status === "quote_sent"),
-        completed: briefs.filter((b) => b.status === "completed"),
-      }
-    : null;
-
-  // Log de categorización
-  if (categorizedBriefs) {
-    console.log("📊 BRIEFS CATEGORIZADOS:");
-    console.log("  - Pendientes:", categorizedBriefs.pending.length);
-    console.log("  - En proceso:", categorizedBriefs.in_review.length);
-    console.log("  - Propuestas enviadas:", categorizedBriefs.quote_sent.length);
-    console.log("  - Completados:", categorizedBriefs.completed.length);
-  }
 
   // Configuración de las columnas del dashboard con nombres actualizados
   const columns = [
@@ -689,7 +658,7 @@ const AdminDashboard = () => {
           ))}
         </div>
 
-        {/* Kanban Board con ambos métodos: Drag and Drop + Dropdown */}
+        {/* Kanban Board con indicador de drag en progreso */}
         <DndContext
           sensors={sensors}
           onDragStart={handleDragStart}
@@ -759,6 +728,16 @@ const AdminDashboard = () => {
             ) : null}
           </DragOverlay>
         </DndContext>
+
+        {/* Indicador de operación en progreso */}
+        {isDragInProgress && (
+          <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+            <div className="flex items-center gap-2 text-sm text-blue-700">
+              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-700"></div>
+              <span>Actualizando estado del presupuesto...</span>
+            </div>
+          </div>
+        )}
 
         {/* Indicador de método activo */}
         <div className="mt-6 p-4 bg-card border border-border rounded-lg">
