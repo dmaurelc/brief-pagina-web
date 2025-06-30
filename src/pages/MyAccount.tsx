@@ -1,3 +1,4 @@
+
 import { useUser } from "@clerk/clerk-react";
 import {
   Card,
@@ -18,34 +19,49 @@ import {
   Clock,
   CheckCircle,
   AlertCircle,
+  Download,
 } from "lucide-react";
 import { Tables } from "@/integrations/supabase/types";
 import { useAdminRole } from "@/hooks/useAdminRole";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import Header from "@/components/Header";
+import ProposalDownloadButton from "@/components/ProposalDownloadButton";
 
 type Brief = Tables<"briefs">;
+type Proposal = Tables<"proposals">;
+
+interface BriefWithProposal extends Brief {
+  proposal?: Proposal | null;
+}
 
 const MyAccount = () => {
   const { user, isLoaded } = useUser();
   const navigate = useNavigate();
   const { isAdmin, loading: adminLoading } = useAdminRole();
 
-  // Fetch user's briefs
+  // Fetch user's briefs with proposals
   const { data: userBriefs, isLoading } = useQuery({
-    queryKey: ["user-briefs", user?.emailAddresses?.[0]?.emailAddress],
+    queryKey: ["user-briefs-with-proposals", user?.emailAddresses?.[0]?.emailAddress],
     queryFn: async () => {
       if (!user?.emailAddresses?.[0]?.emailAddress) return [];
 
       const { data, error } = await supabase
         .from("briefs")
-        .select("*")
+        .select(`
+          *,
+          proposals (*)
+        `)
         .eq("email", user.emailAddresses[0].emailAddress)
         .order("created_at", { ascending: false });
 
       if (error) throw error;
-      return data;
-    },
+      
+      // Transform data to include proposal information
+      return data.map(brief => ({
+        ...brief,
+        proposal: brief.proposals && brief.proposals.length > 0 ? brief.proposals[0] : null
+      })) as BriefWithProposal[];
+    },  
     enabled: !!user?.emailAddresses?.[0]?.emailAddress && isLoaded,
   });
 
@@ -270,10 +286,10 @@ const MyAccount = () => {
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <FileText className="w-5 h-5" />
-                    Mis Presupuestos
+                    Mis Presupuestos y Propuestas
                   </CardTitle>
                   <CardDescription>
-                    Revisa el estado de tus solicitudes de presupuesto
+                    Revisa el estado de tus solicitudes y accede a las propuestas enviadas
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
@@ -307,7 +323,7 @@ const MyAccount = () => {
                             </Badge>
                           </div>
 
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm mb-4">
                             <div>
                               <span className="font-medium">Presupuesto:</span>{" "}
                               {brief.budget}
@@ -326,12 +342,39 @@ const MyAccount = () => {
                             </div>
                           </div>
 
-                          {brief.status === "quote_sent" && (
+                          {/* Propuesta disponible */}
+                          {brief.proposal && (
+                            <div className="mt-4 p-4 bg-green-50 border border-green-200 rounded-lg">
+                              <div className="flex items-center justify-between">
+                                <div>
+                                  <h4 className="font-semibold text-green-800 flex items-center gap-2">
+                                    <Download className="w-4 h-4" />
+                                    Propuesta Lista
+                                  </h4>
+                                  <p className="text-sm text-green-700 mt-1">
+                                    Enviada el {formatDate(brief.proposal.email_sent_at || brief.proposal.uploaded_at)}
+                                  </p>
+                                  {brief.proposal.client_message && (
+                                    <p className="text-sm text-green-700 mt-2 font-medium">
+                                      "{brief.proposal.client_message}"
+                                    </p>
+                                  )}
+                                </div>
+                                <ProposalDownloadButton
+                                  proposalId={brief.proposal.id}
+                                  fileName={brief.proposal.file_name}
+                                  filePath={brief.proposal.file_path}
+                                  companyName={brief.company_name}
+                                />
+                              </div>
+                            </div>
+                          )}
+
+                          {brief.status === "quote_sent" && !brief.proposal && (
                             <Alert className="mt-3">
                               <CheckCircle className="h-4 w-4" />
                               <AlertDescription>
-                                ¡Tu propuesta está lista! Revisa tu email para
-                                más detalles.
+                                ¡Tu propuesta está lista! La propuesta debería estar disponible pronto para descarga.
                               </AlertDescription>
                             </Alert>
                           )}
