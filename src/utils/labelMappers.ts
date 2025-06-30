@@ -55,3 +55,14 @@ export const getIndustryLabel = (value: string): string => {
   };
   return industryMap[value] || value;
 };
+
+export const getStatusLabel = (value: string): string => {
+  const statusMap: { [key: string]: string } = {
+    'pending': 'Pendiente',
+    'in_review': 'En revisión',
+    'quote_sent': 'Propuesta enviada',
+    'completed': 'Completado',
+    'cancelled': 'Cancelado'
+  };
+  return statusMap[value] || value;
+};

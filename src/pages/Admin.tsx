@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { useUser } from "@clerk/clerk-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -18,6 +17,13 @@ import { Tables } from "@/integrations/supabase/types";
 import BriefEditModal from "@/components/BriefEditModal";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import Header from "@/components/Header";
+import {
+  getBudgetLabel,
+  getTimelineLabel,
+  getProjectTypeLabel,
+  getIndustryLabel,
+  getStatusLabel
+} from "@/utils/labelMappers";
 
 type Brief = Tables<"briefs">;
 
@@ -99,17 +105,17 @@ const Admin = () => {
   const getStatusBadgeColor = (status: string | null) => {
     switch (status) {
       case "pending":
-        return "bg-yellow-100 text-yellow-800";
+        return "bg-yellow-500/10 text-yellow-700 border-yellow-200";
       case "in_review":
-        return "bg-blue-100 text-blue-800";
+        return "bg-blue-500/10 text-blue-700 border-blue-200";
       case "quote_sent":
-        return "bg-green-100 text-green-800";
+        return "bg-green-500/10 text-green-700 border-green-200";
       case "completed":
-        return "bg-gray-100 text-gray-800";
+        return "bg-gray-500/10 text-gray-700 border-gray-200";
       case "cancelled":
-        return "bg-red-100 text-red-800";
+        return "bg-red-500/10 text-red-700 border-red-200";
       default:
-        return "bg-gray-100 text-gray-800";
+        return "bg-gray-500/10 text-gray-700 border-gray-200";
     }
   };
 
@@ -273,8 +279,11 @@ const Admin = () => {
                           <h3 className="font-semibold text-lg">
                             {brief.company_name}
                           </h3>
-                          <Badge className={getStatusBadgeColor(brief.status)}>
-                            {brief.status || "pending"}
+                          <Badge 
+                            variant="outline"
+                            className={getStatusBadgeColor(brief.status)}
+                          >
+                            {getStatusLabel(brief.status || "pending")}
                           </Badge>
                         </div>
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm text-muted-foreground">
@@ -288,19 +297,19 @@ const Admin = () => {
                           </div>
                           <div>
                             <span className="font-medium">Industria:</span>{" "}
-                            {brief.industry}
+                            {getIndustryLabel(brief.industry)}
                           </div>
                           <div>
                             <span className="font-medium">Tipo:</span>{" "}
-                            {brief.project_type}
+                            {getProjectTypeLabel(brief.project_type)}
                           </div>
                           <div>
                             <span className="font-medium">Presupuesto:</span>{" "}
-                            {brief.budget}
+                            {getBudgetLabel(brief.budget)}
                           </div>
                           <div>
                             <span className="font-medium">Timeline:</span>{" "}
-                            {brief.timeline}
+                            {getTimelineLabel(brief.timeline)}
                           </div>
                         </div>
                         <div className="mt-2 text-sm text-muted-foreground">
